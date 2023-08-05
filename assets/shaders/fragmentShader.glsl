@@ -1,7 +1,5 @@
 #version 330 core
-in vec3 vertexColor;
 in vec2 vertexUV;
-in float alpha;
 in vec3 fragmentNormal;
 in vec3 fragmentPosition;
 in vec4 fragPosLightSpace;
@@ -20,10 +18,11 @@ uniform sampler2D shadowMap;
 uniform vec3 objectColor;
 uniform int isSpotLightOn = 0;
 uniform int isShadowOn = 0;
+uniform float alpha = 1.0;
 
 out vec4 FragColor;
 
-const float shadingAmbientK    = 0.4;
+const float shadingAmbientK    = 0.6;
 const float shadingDiffuseK    = 0.6;
 const float shadingSpecularK   = 0.3;
 const float PI = 3.1415926535897932384626433832795;
