@@ -1,4 +1,4 @@
-﻿# COMP371: Computer Graphics - Quiz 2
+﻿# COMP371: Computer Graphics - Project
 
 #### Name: Bhavya Ruparelia
 
@@ -72,12 +72,12 @@ at the top level of the source folder.
 In the terminal type:
 
 ```
-./quiz2
+./main
 ```
 
 ### Windows
 
-Click on the **quiz2.exe** from the File Explorer.
+Click on the **main.exe** from the File Explorer.
 
 ## Implementation Specifications
 
