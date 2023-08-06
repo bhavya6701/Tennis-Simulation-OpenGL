@@ -1,8 +1,8 @@
 /**
  * COMP371: Computer Graphics |
- * Quiz 2 |
- * Name: Bhavya Ruparelia |
- * Student ID: 40164863
+ * Project |
+ * Name: Bhavya Ruparelia | Devansh Vaidya | Jananee Aruboribaran
+ * Student ID:
  */
 
 #include <iostream>
@@ -895,7 +895,7 @@ void initialize() {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Create Window and rendering context using GLFW, resolution is 1024x768
-    window = glfwCreateWindow(1024, 768, "Comp371 - Quiz 2", nullptr, nullptr);
+    window = glfwCreateWindow(1024, 768, "Comp371 - Project", nullptr, nullptr);
     glfwSetWindowAttrib(window, GLFW_RESIZABLE, GLFW_TRUE);
 
     if (window == nullptr) {

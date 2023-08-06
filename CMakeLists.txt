@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 
-project(Quiz_2)
+project(Final_Project)
 
 include(ExternalProject)
 
@@ -19,8 +19,8 @@ include(BuildGLEW)
 include(BuildGLFW)
 include(BuildGLM)
 
-# quiz_2
-set(EXEC quiz2)
+# project
+set(EXEC main)
 
 set(ASSETS assets)
 
@@ -33,7 +33,7 @@ target_include_directories(${EXEC} PRIVATE include)
 target_link_libraries(${EXEC} OpenGL::GL glew_s glfw glm)
 
 list(APPEND BIN ${EXEC})
-# end quiz_2
+# end project
 
 # install files to install location
 install(TARGETS ${BIN} DESTINATION ${CMAKE_INSTALL_PREFIX})
