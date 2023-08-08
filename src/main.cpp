@@ -24,12 +24,16 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <stb_image.h>
+#include <irrklang/irrKlang.h>
+
+using namespace irrklang;
 
 using namespace glm;
 using namespace std;
 
 // Window for rendering
 GLFWwindow *window;
+ISoundEngine *SoundEngine = createIrrKlangDevice();
 
 // Shaders
 GLuint depthShaderProgram, colorShaderProgram;
@@ -1047,6 +1051,8 @@ int main(int argc, char *argv[]) {
     SetUniformVec3(colorShaderProgram, "objectColor", vec3(1.0, 1.0, 1.0));
     SetUniform1Value(colorShaderProgram, "isSpotLightOn", 0);
     SetUniform1Value(colorShaderProgram, "isShadowOn", 0);
+
+//    SoundEngine->play2D("../assets/audio/ophelia.mp3", true);
 
     // Entering Main Loop
     while (!glfwWindowShouldClose(window)) {
