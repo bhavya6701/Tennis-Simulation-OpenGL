@@ -39,10 +39,10 @@ int frameBufferWidth, frameBufferHeight;
 int DEPTH_MAP_TEXTURE_SIZE = 1024;
 
 // Textures
-GLuint groundTextureID, blueBoxTextureID, skin1TextureID, skin2TextureID, skin3TextureID, skin4TextureID,
-        racketHandleTextureID, racketSideTextureID, racketNetTextureID, ballTextureID, redAlphabetTextureID,
-        greenAlphabetTextureID, blueAlphabetTextureID, yellowAlphabetTextureID, whiteTextureID, silverPoleTextureID,
+GLuint tennisCourtGrassTextureID, tennisCourtLineTextureID, blueBoxTextureID, skin1TextureID, skin2TextureID, skin3TextureID, skin4TextureID,
+        racketHandleTextureID, racketSideTextureID, racketNetTextureID, ballTextureID, whiteTextureID, silverPoleTextureID,
         tennisNetTextureID;
+GLuint playerTitleTextureID[2];
 
 // Frame buffer object for shadow mapping
 GLuint depthMapFbo;
@@ -80,11 +80,8 @@ float lastBtnClick = 0.0f;
 float lastFrameTime = (float) glfwGetTime();
 
 // Model parameters for model transform
-vec3 modelPosition[] = {vec3(-5.0f, 2.25f, -20.0f),
-                        vec3(-5.0f, 2.25f, 20.0f)};
-float modelScalingFactor = 1.0f;
-vec3 modelScalingVector(modelScalingFactor, modelScalingFactor, modelScalingFactor);
-mat4 modelScalingMatrix = scale(mat4(1.0f), modelScalingVector);
+vec3 modelPosition[] = {vec3(-5.0f, 0.25f, -40.0f),
+                        vec3(-5.0f, 0.25f, 40.0f)};
 float yRotationAngle[] = {0.0f, 0.0f}, xWorldRotationAngle = 0.0f, yWorldRotationAngle = 0.0f;
 float rotateByAngle = 5.0f, otherRotateByAngle = 0.5f;
 mat4 yRotationMatrix[] = {rotate(mat4(1.0f), yRotationAngle[0], vec3(0.0f, 1.0f, 0.0f)),
@@ -112,11 +109,15 @@ mat4 defaultArmRotationMatrix[] = {
         rotate(mat4(1.0f), radians(60.0f), vec3(0.0f, 0.0f, 1.0f))
 };
 mat4 defaultArmTranslationMatrix[] = {
-        translate(mat4(1.0f), vec3(0.75f, 5.0f, 0.0f)),
-        translate(mat4(1.0f), vec3(0.375f, 2.5f, 0.375f))
+        translate(mat4(1.0f), vec3(0.5f, 3.3f, 0.42f)),
+        translate(mat4(1.0f), vec3(0.0f, 1.0f, 0.0f))
 };
 int selectedFigure = 0;
 int selectedModel = 0;
+
+// Ball parameters
+vec3 ballPosition(0.0f, 10.0f, 10.0f);
+vec3 ballVelocity(0.0f, 0.0f, 0.0f);
 
 // Light parameters
 vec3 lightPosition;
@@ -252,7 +253,7 @@ void resetHome() {
     cameraLookAt = vec3(0.0f, 0.0f, -0.5f);
     cameraUp = vec3(0.0f, 1.0f, 0.0f);
     cameraIndex = 0;
-    modelPosition[0] = vec3(-5.0f, 2.25f, -20.0f), modelPosition[1] = vec3(-5.0f, 2.25f, 20.0f);
+    modelPosition[0] = vec3(-5.0f, 0.25f, -40.0f), modelPosition[1] = vec3(-5.0f, 0.25f, 40.0f);
     yRotationAngle[0] /= -2, yRotationAngle[1] /= -2;
     xWorldRotationAngle /= -2, yWorldRotationAngle /= -2;
     armXRotationAngle[0] /= -2, armYRotationAngle[0] /= -2, armZRotationAngle[0] /= -2;
@@ -373,22 +374,6 @@ void handleInputs() {
     // Poll for and process events
     glfwPollEvents();
 
-    // Move model to a random position
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        modelPosition[selectedModel].x = (rand() % 90) - 45;
-        modelPosition[selectedModel].z = (rand() % 90) - 45;
-    }
-
-    // Scale up model
-    if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS) {
-        modelScalingFactor = modelScalingFactor < 10.0f ? modelScalingFactor + 0.01f : 10.0f;
-    }
-
-    // Scale down model
-    if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS) {
-        modelScalingFactor = modelScalingFactor > 0.01f ? modelScalingFactor - 0.01f : 0.01f;
-    }
-
     // Exit program
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
@@ -397,13 +382,13 @@ void handleInputs() {
     // Move model to +z direction
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         modelPosition[selectedModel].z =
-                modelPosition[selectedModel].z > -44.0f ? modelPosition[selectedModel].z - 0.5f : -44.0f;
+                modelPosition[selectedModel].z > -54.17f ? modelPosition[selectedModel].z - 0.5f : -54.17f;
     }
 
     // Move model to -z direction
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         modelPosition[selectedModel].z =
-                modelPosition[selectedModel].z < 44.0f ? modelPosition[selectedModel].z + 0.5f : 44.0f;
+                modelPosition[selectedModel].z < 54.17f ? modelPosition[selectedModel].z + 0.5f : 54.17f;
     }
 
     // Rotate model to the left around y-axis by 5 degrees
@@ -413,7 +398,7 @@ void handleInputs() {
             yRotationAngle[selectedModel] -= radians(rotateByAngle);
         } else {
             modelPosition[selectedModel].x =
-                    modelPosition[selectedModel].x > -20.5f ? modelPosition[selectedModel].x - 0.5f : -20.5f;
+                    modelPosition[selectedModel].x > -25.0f ? modelPosition[selectedModel].x - 0.5f : -25.0f;
         }
     }
 
@@ -423,7 +408,7 @@ void handleInputs() {
             yRotationAngle[selectedModel] += radians(rotateByAngle);
         } else {
             modelPosition[selectedModel].x =
-                    modelPosition[selectedModel].x < 20.5f ? modelPosition[selectedModel].x + 0.5f : 20.5f;
+                    modelPosition[selectedModel].x < 25.0f ? modelPosition[selectedModel].x + 0.5f : 25.0f;
         }
     }
 
@@ -541,77 +526,146 @@ void handleInputs() {
     }
 }
 
+void createTennisCourt(GLuint shaderProgram) {
+    // Tennis court grass
+    glBindTexture(GL_TEXTURE_2D, tennisCourtGrassTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, -1.0f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(50.0f, 0.05f, 108.34f));
+    groundTennisHierarchicalMatrix = worldRotationMatrix * translationMatrix;
+    worldMatrix = groundTennisHierarchicalMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Tennis court lines
+    // Left Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(-25.0f, 0.05f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 0.05f, 108.34f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Right Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(25.0f, 0.05f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 0.05f, 108.34f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Far Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.05f, -54.17f));
+    scalingMatrix = scale(mat4(1.0f), vec3(50.0f, 0.05f, 0.5f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Near Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.05f, 54.17f));
+    scalingMatrix = scale(mat4(1.0f), vec3(50.0f, 0.05f, 0.5f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Singles Left Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(-18.73f, 0.05f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 0.05f, 108.34f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Singles Right Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(18.73f, 0.05f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 0.05f, 108.34f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Center Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.05f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 0.05f, 58.34f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Inner Far Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.05f, -29.17f));
+    scalingMatrix = scale(mat4(1.0f), vec3(37.46f, 0.05f, 0.5f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Inner Near Line
+    glBindTexture(GL_TEXTURE_2D, tennisCourtLineTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.05f, 29.17f));
+    scalingMatrix = scale(mat4(1.0f), vec3(37.46f, 0.05f, 0.5f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Tennis Net Side 1
+    glBindTexture(GL_TEXTURE_2D, silverPoleTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(-24.0f, 2.45f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 4.9f, 0.5f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Tennis Net Side 2
+    translationMatrix = translate(mat4(1.0f), vec3(24.0f, 2.45f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 4.9f, 0.5f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Tennis Net
+    SetUniform1Value(colorShaderProgram, "isTransparent", 1);
+    glBindTexture(GL_TEXTURE_2D, tennisNetTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 2.07f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(48.0f, 4.14f, 0.5f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+    SetUniform1Value(colorShaderProgram, "isTransparent", 0);
+
+    // Tennis Net Top Part
+    glBindTexture(GL_TEXTURE_2D, whiteTextureID);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 4.2f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(48.0f, 0.25f, 0.25f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+}
+
 /**
  * Draw a frame
  */
 void drawFrame(GLuint shaderProgram) {
     // Draw textured geometry
     glActiveTexture(GL_TEXTURE0);
-
-    // Square - Ground
     glBindVertexArray(cubeVAO);
-    glBindTexture(GL_TEXTURE_2D, groundTextureID);
-    translationMatrix = translate(mat4(1.0f), vec3(0.0f, -1.0f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(36.0f, 0.02f, 78.0f));
-    groundTennisHierarchicalMatrix = worldRotationMatrix * translationMatrix;
-    worldMatrix = groundTennisHierarchicalMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
     // Surrounding cube
     glBindTexture(GL_TEXTURE_2D, blueBoxTextureID);
     translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.0f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(150.0f, 150.0f, 150.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(200.0f, 200.0f, 200.0f));
     worldMatrix = worldRotationMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // Tennis Net Side 1
-    glBindTexture(GL_TEXTURE_2D, silverPoleTextureID);
-    translationMatrix = translate(mat4(1.0f), vec3(-17.0f, 6.0f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(1.0f, 12.0f, 1.0f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // Tennis Net Side 2
-    translationMatrix = translate(mat4(1.0f), vec3(17.0f, 6.0f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(1.0f, 12.0f, 1.0f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // Tennis Net Side 3
-    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 6.0f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(1.0f, 12.0f, 1.0f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // Tennis Net
-    glBindTexture(GL_TEXTURE_2D, tennisNetTextureID);
-    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 5.5f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(34.0f, 10.0f, 0.5f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // Tennis Net Top Part
-    glBindTexture(GL_TEXTURE_2D, whiteTextureID);
-    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 10.5f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(34.0f, 1.0f, 0.25f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
     // Sphere 1 (Tennis ball)
     glBindVertexArray(sphereVAO);
     glBindTexture(GL_TEXTURE_2D, ballTextureID);
-    translationMatrix = translate(mat4(1.0f), vec3(0.0f, 10.0f, 10.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(0.3f, 0.3f, 0.3f));
+    translationMatrix = translate(mat4(1.0f), ballPosition);
+    scalingMatrix = scale(mat4(1.0f), vec3(0.2f, 0.2f, 0.2f));
     worldMatrix = worldRotationMatrix * translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawElements(GL_TRIANGLES, sphereVerticesCount, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLE_STRIP, sphereVerticesCount, GL_UNSIGNED_INT, 0);
     glBindVertexArray(cubeVAO);
 
     // Create 2 players
@@ -619,9 +673,9 @@ void drawFrame(GLuint shaderProgram) {
         // Cube 1 (Arm bottom)
         glBindTexture(GL_TEXTURE_2D, skin1TextureID);
         translationMatrix = translate(mat4(1.0f), modelPosition[i]);
-        scalingMatrix = scale(mat4(1.0f), vec3(1.5f, 10.0f, 1.25f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 3.3f, 0.42f));
         rotationMatrix = defaultArmRotationMatrix[0] * armRotationMatrix[0] * defaultArmTranslationMatrix[0];
-        modelHierarchicalMatrix = worldRotationMatrix * yRotationMatrix[i] * modelScalingMatrix * translationMatrix *
+        modelHierarchicalMatrix = worldRotationMatrix * yRotationMatrix[i] * translationMatrix *
                                   rotationMatrix;
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
@@ -629,9 +683,9 @@ void drawFrame(GLuint shaderProgram) {
 
         // Cube 2 (Arm top)
         glBindTexture(GL_TEXTURE_2D, skin2TextureID);
-        translationMatrix = translate(mat4(1.0f), vec3(-0.25f, 4.5f, -0.375f));
+        translationMatrix = translate(mat4(1.0f), vec3(.0f, 1.5f, 0.0f));
         rotationMatrix = defaultArmRotationMatrix[1] * armRotationMatrix[1] * defaultArmTranslationMatrix[1];
-        scalingMatrix = scale(mat4(1.0f), vec3(0.75f, 5.0f, 0.75f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.25f, 1.66f, 0.25f));
         modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix * rotationMatrix;
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
@@ -639,8 +693,8 @@ void drawFrame(GLuint shaderProgram) {
 
         // Cube 3 (hand - palm)
         glBindTexture(GL_TEXTURE_2D, skin3TextureID);
-        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 3.5f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(2.0f, 2.0f, 0.75f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 1.16f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.66f, 0.66f, 0.25f));
         modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix;
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
@@ -648,49 +702,49 @@ void drawFrame(GLuint shaderProgram) {
 
         // Cube 4.1 (hand - thumb)
         glBindTexture(GL_TEXTURE_2D, skin4TextureID);
-        translationMatrix = translate(mat4(1.0f), vec3(-0.65f, 0.25f, 0.5f));
+        translationMatrix = translate(mat4(1.0f), vec3(-0.22f, 0.08f, 0.16f));
         rotationMatrix = rotate(mat4(1.0f), radians(30.0f), vec3(0.0f, 1.0f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 0.5f, 1.25f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.16f, 0.16f, 0.42f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * rotationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 4.2 (hand - finger)
-        translationMatrix = translate(mat4(1.0f), vec3(0.4f, 0.8f, 0.65f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.14f, 0.27f, 0.22f));
         rotationMatrix = rotate(mat4(1.0f), radians(-40.0f), vec3(0.0f, 1.0f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(0.35f, 0.35f, 1.5f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.12f, 0.12f, 0.42f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * rotationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 4.3 (hand - finger)
-        translationMatrix = translate(mat4(1.0f), vec3(0.4f, 0.3f, 0.65f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.14f, 0.1f, 0.22f));
         rotationMatrix = rotate(mat4(1.0f), radians(-30.0f), vec3(0.0f, 1.0f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(0.4f, 0.4f, 1.75f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.14f, 0.14f, 0.58f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * rotationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 4.4 (hand - finger)
-        translationMatrix = translate(mat4(1.0f), vec3(0.5f, -0.1f, 0.65f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.16f, -0.03f, 0.22f));
         rotationMatrix = rotate(mat4(1.0f), radians(-30.0f), vec3(0.0f, 1.0f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(0.35f, 0.35f, 1.5f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.12f, 0.12f, 0.5f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * rotationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 4.5 (hand - finger)
-        translationMatrix = translate(mat4(1.0f), vec3(0.5f, -0.55f, 0.65f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.16f, -0.18f, 0.22f));
         rotationMatrix = rotate(mat4(1.0f), radians(-35.0f), vec3(0.0f, 1.0f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(0.35f, 0.35f, 1.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.12f, 0.12f, 0.33f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * rotationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 5 (Tennis handle)
         glBindTexture(GL_TEXTURE_2D, racketHandleTextureID);
-        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 3.0f, 0.5f));
-        scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 7.0f, 0.5f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 1.0f, 0.16f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.16f, 2.33f, 0.16f));
         modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix;
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
@@ -698,134 +752,108 @@ void drawFrame(GLuint shaderProgram) {
 
         // Cube 6 (Tennis loop bottom)
         glBindTexture(GL_TEXTURE_2D, racketSideTextureID);
-        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 3.5f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(4.0f, 0.5f, 0.5f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 1.16f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(1.33f, 0.16f, 0.16f));
         modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix;
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 7 (Tennis loop left)
-        translationMatrix = translate(mat4(1.0f), vec3(-2.0f, 2.5f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 5.0f, 0.5f));
+        translationMatrix = translate(mat4(1.0f), vec3(-0.66f, 0.83f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.16f, 1.66f, 0.16f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 8 (Tennis loop right)
-        translationMatrix = translate(mat4(1.0f), vec3(2.0f, 2.5f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 5.0f, 0.5f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.66f, 0.83f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.16f, 1.66f, 0.16f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 9 (Tennis loop top)
-        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 5.0f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(4.0f, 0.5f, 0.5f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 1.66f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(1.33f, 0.16f, 0.16f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         // Cube 10 (Racket net)
         glBindTexture(GL_TEXTURE_2D, racketNetTextureID);
-        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 2.5f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(4.0f, 5.0f, 0.5f));
+        translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.83f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(1.33f, 1.66f, 0.16f));
+        worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+        // Cube 9 (Letter P)
+        glBindTexture(GL_TEXTURE_2D, playerTitleTextureID[i]);
+        translationMatrix = translate(mat4(1.0f), vec3(-0.3f, 2.5f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.08f, 0.66f, 0.08f));
+        modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix;
+        worldMatrix = modelHierarchicalMatrix * scalingMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+        translationMatrix = translate(mat4(1.0f), vec3(0.16f, 0.33f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.42f, 0.08f, 0.08f));
+        worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+        translationMatrix = translate(mat4(1.0f), vec3(0.16f, 0.0f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.42f, 0.08f, 0.08f));
+        worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+        translationMatrix = translate(mat4(1.0f), vec3(0.33f, 0.16f, 0.0f));
+        scalingMatrix = scale(mat4(1.0f), vec3(0.08f, 0.33f, 0.08f));
         worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
         if (i == 0) {
-            // Cube 9 (Letter E)
-            glBindTexture(GL_TEXTURE_2D, redAlphabetTextureID);
-            translationMatrix = translate(mat4(1.0f), vec3(-1.5f, 7.5f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(0.25f, 2.0f, 0.25f));
+            // Cube 10 (Number 1)
+            translationMatrix = translate(mat4(1.0f), vec3(0.66f, 0.0f, 0.0f));
+            scalingMatrix = scale(mat4(1.0f), vec3(0.08f, 0.75f, 0.08f));
             modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix;
             worldMatrix = modelHierarchicalMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
-            translationMatrix = translate(mat4(1.0f), vec3(0.5f, 1.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(1.25f, 0.25f, 0.25f));
-            worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-            translationMatrix = translate(mat4(1.0f), vec3(0.5f, 0.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(1.25f, 0.25f, 0.25f));
-            worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-            translationMatrix = translate(mat4(1.0f), vec3(0.5f, -1.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(1.25f, 0.25f, 0.25f));
-            worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-            // Cube 10 (Letter L)
-            glBindTexture(GL_TEXTURE_2D, greenAlphabetTextureID);
-            translationMatrix = translate(mat4(1.0f), vec3(2.0f, 0.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(0.25f, 2.25f, 0.25f));
-            modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix;
-            worldMatrix = modelHierarchicalMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-            translationMatrix = translate(mat4(1.0f), vec3(0.5f, -1.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(1.25f, 0.25f, 0.25f));
-            worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
         } else if (i == 1) {
-            // Cube 11 (Letter I)
-            glBindTexture(GL_TEXTURE_2D, blueAlphabetTextureID);
-            translationMatrix = translate(mat4(1.0f), vec3(-1.0f, 7.5f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(0.25f, 2.0f, 0.25f));
+            // Cube 12 (Number 2)
+            translationMatrix = translate(mat4(1.0f), vec3(0.5f, 0.25f, 0.0f));
+            scalingMatrix = scale(mat4(1.0f), vec3(0.08f, 0.22f, 0.08f));
             modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix;
             worldMatrix = modelHierarchicalMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
-            translationMatrix = translate(mat4(1.0f), vec3(0.0f, 1.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(1.25f, 0.25f, 0.25f));
+            translationMatrix = translate(mat4(1.0f), vec3(0.16f, 0.08f, 0.0f));
+            scalingMatrix = scale(mat4(1.0f), vec3(0.42f, 0.08f, 0.08f));
             worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
-            translationMatrix = translate(mat4(1.0f), vec3(0.0f, -1.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(1.25f, 0.25f, 0.25f));
-            worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
+            translationMatrix = translate(mat4(1.0f), vec3(0.16f, -0.25f, 0.0f));
+            scalingMatrix = scale(mat4(1.0f), vec3(0.08f, 0.75f, 0.08f));
+            rotationMatrix = rotate(mat4(1.0f), radians(-30.0f), vec3(0.0f, 0.0f, 1.0f));
+            worldMatrix = modelHierarchicalMatrix * translationMatrix * rotationMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
-            // Cube 12 (Letter A)
-            glBindTexture(GL_TEXTURE_2D, yellowAlphabetTextureID);
-            translationMatrix = translate(mat4(1.0f), vec3(1.5f, 0.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(0.25f, 2.0f, 0.25f));
-            modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix;
-            worldMatrix = modelHierarchicalMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-            translationMatrix = translate(mat4(1.0f), vec3(1.0f, 0.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(0.25f, 2.0f, 0.25f));
-            worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-            translationMatrix = translate(mat4(1.0f), vec3(0.5f, 0.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(1.25f, 0.25f, 0.25f));
-            worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-            translationMatrix = translate(mat4(1.0f), vec3(0.5f, 1.0f, 0.0f));
-            scalingMatrix = scale(mat4(1.0f), vec3(1.25f, 0.25f, 0.25f));
+            translationMatrix = translate(mat4(1.0f), vec3(0.16f, -0.55f, 0.0f));
+            scalingMatrix = scale(mat4(1.0f), vec3(0.42f, 0.08f, 0.08f));
             worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
         }
     }
+    createTennisCourt(shaderProgram);
 
     glBindVertexArray(0);
     // End Frame
@@ -844,10 +872,6 @@ void processUpdates() {
     cameraPosition[2] = vec3(modelPosition[1].x, modelPosition[1].y + 2.5, modelPosition[1].z + 0.5);
     viewMatrix = lookAt(cameraPosition[cameraIndex], cameraPosition[cameraIndex] + cameraLookAt, cameraUp);
     SetUniformMat4(colorShaderProgram, "viewMatrix", viewMatrix);
-
-    // Update matrix with scaling factor of the model
-    modelScalingVector = vec3(modelScalingFactor, modelScalingFactor, modelScalingFactor);
-    modelScalingMatrix = scale(mat4(1.0f), modelScalingVector);
 
     // Update matrix with angle of rotation of the model
     yRotationMatrix[selectedModel] = rotate(mat4(1.0f), yRotationAngle[selectedModel], vec3(0.0f, 1.0f, 0.0f));
@@ -973,14 +997,13 @@ void initializeFrameBuffer() {
  * Load all the textures
  */
 void loadAllTextures() {
-    groundTextureID = loadTexture("../assets/textures/ground.png");
+    tennisCourtGrassTextureID = loadTexture("../assets/textures/tennis_court_grass.png");
+    tennisCourtLineTextureID = loadTexture("../assets/textures/tennis_court_chalk.png");
     blueBoxTextureID = loadTexture("../assets/textures/blue_box.png");
     silverPoleTextureID = loadTexture("../assets/textures/silver_pole.png");
     tennisNetTextureID = loadTexture("../assets/textures/tennis_net.png");
-    redAlphabetTextureID = loadTexture("../assets/textures/red.png");
-    greenAlphabetTextureID = loadTexture("../assets/textures/green.png");
-    blueAlphabetTextureID = loadTexture("../assets/textures/blue.png");
-    yellowAlphabetTextureID = loadTexture("../assets/textures/yellow.png");
+    playerTitleTextureID[0] = loadTexture("../assets/textures/red.png");
+    playerTitleTextureID[1] = loadTexture("../assets/textures/blue.png");
     whiteTextureID = loadTexture("../assets/textures/white.png");
     skin1TextureID = loadTexture("../assets/textures/skin1.png");
     skin2TextureID = loadTexture("../assets/textures/skin2.png");
@@ -1047,6 +1070,7 @@ int main(int argc, char *argv[]) {
     SetUniformVec3(colorShaderProgram, "objectColor", vec3(1.0, 1.0, 1.0));
     SetUniform1Value(colorShaderProgram, "isSpotLightOn", 0);
     SetUniform1Value(colorShaderProgram, "isShadowOn", 0);
+    SetUniform1Value(colorShaderProgram, "isTransparent", 0);
 
     // Entering Main Loop
     while (!glfwWindowShouldClose(window)) {

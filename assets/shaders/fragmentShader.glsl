@@ -18,7 +18,7 @@ uniform sampler2D shadowMap;
 uniform vec3 objectColor;
 uniform int isSpotLightOn = 0;
 uniform int isShadowOn = 0;
-uniform float alpha = 1.0;
+uniform int isTransparent;
 
 out vec4 FragColor;
 
@@ -79,5 +79,8 @@ void main()
     vec3 specular = scalar * specularColor(lightColor, lightPosition);
     int checkForSpotLight = isSpotLightOn;
     vec3 totalLight = checkForSpotLight == 0 ? 2 * ambient : specular + diffuse + ambient;
-    FragColor = vec4(textureColor.rgb * totalLight * objectColor, textureColor.a * alpha);
+
+    int checkTransparent = isTransparent;
+
+    FragColor = vec4(textureColor.rgb * totalLight * objectColor, textureColor.a * (checkTransparent == 1? 0.5 : 1.0));
 }
