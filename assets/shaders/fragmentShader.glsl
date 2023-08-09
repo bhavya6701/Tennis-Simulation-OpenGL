@@ -22,9 +22,9 @@ uniform int isTransparent;
 
 out vec4 FragColor;
 
-const float shadingAmbientK    = 0.6;
-const float shadingDiffuseK    = 0.6;
-const float shadingSpecularK   = 0.3;
+const float shadingAmbientK    = 0.1;
+const float shadingDiffuseK    = 0.3;
+const float shadingSpecularK   = 0.6;
 const float PI = 3.1415926535897932384626433832795;
 
 vec3 ambientColor(vec3 lightColorArg) {
@@ -78,7 +78,7 @@ void main()
     vec3 diffuse = scalar * diffuseColor(lightColor, lightPosition);
     vec3 specular = scalar * specularColor(lightColor, lightPosition);
     int checkForSpotLight = isSpotLightOn;
-    vec3 totalLight = checkForSpotLight == 0 ? 2 * ambient : specular + diffuse + ambient;
+    vec3 totalLight = checkForSpotLight == 0 ? 7 * ambient : specular + diffuse + ambient;
 
     int checkTransparent = isTransparent;
 
