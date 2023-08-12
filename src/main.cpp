@@ -56,7 +56,7 @@ int cubeVerticesCount, sphereVerticesCount;
 
 // Matrix declarations
 mat4 worldMatrix, viewMatrix, projectionMatrix, rotationMatrix, translationMatrix, scalingMatrix, modelHierarchicalMatrix,
-        groundTennisHierarchicalMatrix;
+        groundTennisHierarchicalMatrix, overallTranslationMatrix;
 
 // Tilting parameters for camera
 float dt = 0.0f;
@@ -88,8 +88,8 @@ float lastBtnClick = 0.0f;
 float lastFrameTime = (float) glfwGetTime();
 
 // Model parameters for model transform
-vec3 modelPosition[] = {vec3(-5.0f, 0.25f, -40.0f),
-                        vec3(-5.0f, 0.25f, 40.0f)};
+vec3 modelPosition[] = {vec3(0.0f, 0.25f, 40.0f),
+                        vec3(-5.0f, 0.25f, -40.0f)};
 float yRotationAngle[] = {0.0f, 0.0f};
 float rotateByAngle = 5.0f, otherRotateByAngle = 0.5f;
 mat4 yRotationMatrix[] = {rotate(mat4(1.0f), yRotationAngle[0], vec3(0.0f, 1.0f, 0.0f)),
@@ -121,8 +121,16 @@ int selectedFigure = 0;
 int selectedModel = 0;
 
 // Ball parameters
-vec3 ballPosition(0.0f, 10.0f, 10.0f);
+vec3 ballPosition(5.0f, 20.0f, 35.0f);
+vec3 ballScaling(0.2f, 0.2f, 0.2f);
 vec3 ballVelocity(0.0f, 0.0f, 0.0f);
+const float GRAVITY = 9.807f, DAMPING = 0.9f;
+vec3 groundPoint(0.0f, -1.0f, 0.0f);
+vec3 groundNormal(0.0f, 1.0f, 0.0f);
+vec3 ballRotationAxis(0.0f, 1.0f, 0.0f);
+float ballRotationAngle = 0.0f;
+vec3 ballAngularAxis(0.0f, 1.0f, 0.0f);
+float ballAngularVelocity = 0.0f;
 
 // Light parameters
 vec3 lightPosition;
@@ -134,6 +142,21 @@ bool isShadowOn = false;
 int itemsVertices[6];
 GLuint itemsVAO[6];
 GLuint worldTextures[10], scoreBoardTextures[10];
+
+//Assumes the sphere is evenly scaled
+bool containsPoint(vec3 position) {
+    float radius = ballScaling.x; //This is where the assumption lies
+    float dist = distance(ballPosition, position);
+    return dist <= radius;
+}
+
+//Assumes the sphere is evenly scaled
+bool intersectsPlane(vec3 planePoint, vec3 planeNormal) {
+    //We simply compare the distance between the ground and sphere center, with its radius
+    float radius = ballScaling.x;
+    return dot(planeNormal, ballPosition - planePoint) < radius;
+    return false;
+}
 
 void drawWorld(GLuint shaderProgram, float xPos, float xNeg, float zPos, float zNeg, float yGround, float scaling);
 
@@ -259,13 +282,13 @@ GLuint setupModelEBO(string path, int &vertexCount) {
 }
 
 void resetHome() {
-    cameraPosition[0] = vec3(0.0f, 7.5f, 40.0f);
+    cameraPosition[0] = vec3(0.0f, 20.0f, 70.0f);
     cameraPosition[1] = vec3(-5.0f, 2.25f, -20.0f);
     cameraPosition[2] = vec3(-5.0f, 2.25f, 20.0f);
     cameraLookAt = -cameraPosition[0];
     cameraUp = vec3(0.0f, 1.0f, 0.0f);
     cameraIndex = 0;
-    modelPosition[0] = vec3(-5.0f, 0.25f, -40.0f), modelPosition[1] = vec3(-5.0f, 0.25f, 40.0f);
+    modelPosition[0] = vec3(0.0f, 0.25f, 40.0f), modelPosition[1] = vec3(-5.0f, 0.25f, -40.0f);
     yRotationAngle[0] /= -2, yRotationAngle[1] /= -2;
     armXRotationAngle[0] /= -2, armYRotationAngle[0] /= -2, armZRotationAngle[0] /= -2;
     armXRotationAngle[1] /= -2, armYRotationAngle[1] /= -2, armZRotationAngle[1] /= -2;
@@ -548,7 +571,7 @@ void handleInputs() {
 void createTennisCourt(GLuint shaderProgram) {
     // Tennis court grass
     glBindTexture(GL_TEXTURE_2D, tennisCourtGrassTextureID);
-    translationMatrix = translate(mat4(1.0f), vec3(0.0f, -1.0f, 0.0f));
+    translationMatrix = translate(mat4(1.0f), groundPoint);
     scalingMatrix = scale(mat4(1.0f), vec3(50.0f, 0.05f, 108.34f));
     groundTennisHierarchicalMatrix = translationMatrix;
     worldMatrix = groundTennisHierarchicalMatrix * scalingMatrix;
@@ -775,7 +798,7 @@ void drawFrame(GLuint shaderProgram) {
     glBindVertexArray(sphereVAO);
     glBindTexture(GL_TEXTURE_2D, ballTextureID);
     translationMatrix = translate(mat4(1.0f), ballPosition);
-    scalingMatrix = scale(mat4(1.0f), vec3(0.2f, 0.2f, 0.2f));
+    scalingMatrix = scale(mat4(1.0f), ballScaling);
     worldMatrix = translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawElements(GL_TRIANGLE_STRIP, sphereVerticesCount, GL_UNSIGNED_INT, nullptr);
@@ -793,6 +816,7 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+        overallTranslationMatrix = translationMatrix;
 
         // Cube 2 (Arm top)
         glBindTexture(GL_TEXTURE_2D, skin2TextureID);
@@ -803,6 +827,7 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 3 (hand - palm)
         glBindTexture(GL_TEXTURE_2D, skin3TextureID);
@@ -812,6 +837,7 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 4.1 (hand - thumb)
         glBindTexture(GL_TEXTURE_2D, skin4TextureID);
@@ -862,6 +888,7 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 6 (Tennis loop bottom)
         glBindTexture(GL_TEXTURE_2D, racketSideTextureID);
@@ -871,6 +898,7 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 7 (Tennis loop left)
         translationMatrix = translate(mat4(1.0f), vec3(-0.66f, 0.83f, 0.0f));
@@ -900,6 +928,7 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 9 (Letter P)
         glBindTexture(GL_TEXTURE_2D, playerTitleTextureID[i]);
@@ -973,6 +1002,21 @@ void drawFrame(GLuint shaderProgram) {
     // End Frame
 }
 
+void updateBallPosition() {
+    // Racket Position
+    vec3 racketPosition = vec3(overallTranslationMatrix[3]);
+
+    // Update ball position
+    ballVelocity += vec3(0.0f, -GRAVITY, 0.0f) * dt;
+
+    if (intersectsPlane(groundPoint, groundNormal)) {
+        ballVelocity.y = abs(ballVelocity.y * DAMPING);
+    }
+    ballPosition += dt * ballVelocity + 0.5f * dt * dt * vec3(0.0f, -GRAVITY, 0.0f);
+    ballRotationAxis = mix(ballRotationAxis, ballAngularAxis, dt);
+    ballRotationAngle += dt * ballAngularVelocity;
+}
+
 /**
  * Process the updates after each frame
  */
@@ -980,6 +1024,9 @@ void processUpdates() {
     // Get time difference since last frame
     dt = glfwGetTime() - lastFrameTime;
     lastFrameTime += dt;
+
+    updateBallPosition();
+
 
     // Update view matrix
     if (cameraIndex != 0) {
@@ -1359,13 +1406,13 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
     }
 
     //chair on left in court
-    glBindVertexArray(itemsVAO[1]);
-    glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
-    translationMatrix = translate(mat4(1.0f), vec3(xPos + 2.0f, yGround, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
-    worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
+//    glBindVertexArray(itemsVAO[1]);
+//    glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
+//    translationMatrix = translate(mat4(1.0f), vec3(xPos + 2.0f, yGround, 0.0f));
+//    scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
+//    worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
+//    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+//    glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
 
     for (int count = 0; count < 2; count++) {
         float pushback = 10 * count;
