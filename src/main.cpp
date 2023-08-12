@@ -131,8 +131,8 @@ bool isSpotLightOn = false;
 bool isShadowOn = false;
 
 //VAO for world
-int itemsVertices[10];
-GLuint itemsVAO[10];
+int itemsVertices[6];
+GLuint itemsVAO[6];
 GLuint worldTextures[10], scoreBoardTextures[10];
 
 void drawWorld(GLuint shaderProgram, float xPos, float xNeg, float zPos, float zNeg, float yGround, float scaling);
@@ -1147,7 +1147,6 @@ void loadAllTextures() {
     worldTextures[5] = loadTexture("../assets/textures/tree.png");
     worldTextures[6] = loadTexture("../assets/textures/tree2.png");
     worldTextures[7] = loadTexture("../assets/textures/clayTexture.png");
-    worldTextures[8] = loadTexture("../assets/textures/stone.png");
 }
 
 /**
@@ -1182,12 +1181,8 @@ int main(int argc, char *argv[]) {
             "../assets/models/standingMan.obj",
             "../assets/models/tree.obj",
             "../assets/models/palmTree.obj",
-            "../assets/models/CavePlatform1_Obj.obj",
-            "../assets/models/rock_stone.obj",
-            "../assets/models/Rocks.obj",
-            "../assets/models/rabbit_orictolagus_01.obj"
     };
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 6; i++) {
         itemsVAO[i] = setupModelEBO(itemPath[i], itemsVertices[i]);
     }
 
@@ -1433,21 +1428,6 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawElements(GL_TRIANGLES, itemsVertices[5], GL_UNSIGNED_INT, nullptr);
     }
-
-    glBindVertexArray(itemsVAO[6]);
-    glBindTexture(GL_TEXTURE_2D, worldTextures[7]);
-    translationMatrix = translate(mat4(1.0f), vec3(80.0f, yGround - 2, -80.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(scaling * 6));
-    worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawElements(GL_TRIANGLES, itemsVertices[6], GL_UNSIGNED_INT, nullptr);
-
-    glBindTexture(GL_TEXTURE_2D, worldTextures[8]);
-    translationMatrix = translate(mat4(1.0f), vec3(65.0f, yGround - 2, -70.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(scaling * 3));
-    worldMatrix = translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawElements(GL_TRIANGLES, itemsVertices[6], GL_UNSIGNED_INT, nullptr);
 
     glBindVertexArray(0);
     // End Frame
