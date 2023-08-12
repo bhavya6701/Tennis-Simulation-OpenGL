@@ -1112,9 +1112,9 @@ void initializeFrameBuffer() {
  */
 void loadAllTextures() {
     tennisCourtGrassTextureID = loadTexture("../assets/textures/tennis_court_grass.png");
-    tennisCourtLineTextureID = loadTexture("../assets/textures/tennis_court_chalk.png");
-    blueBoxTextureID = loadTexture("../assets/textures/blue_box.png");
-    silverPoleTextureID = loadTexture("../assets/textures/silver_pole.png");
+    tennisCourtLineTextureID = loadTexture("../assets/textures/tennisCourtChalk.png");
+    blueBoxTextureID = loadTexture("../assets/textures/blueBox.png");
+    silverPoleTextureID = loadTexture("../assets/textures/silverPole.png");
     tennisNetTextureID = loadTexture("../assets/textures/tennis_net.png");
     playerTitleTextureID[0] = loadTexture("../assets/textures/red.png");
     playerTitleTextureID[1] = loadTexture("../assets/textures/blue.png");
@@ -1123,21 +1123,21 @@ void loadAllTextures() {
     skin2TextureID = loadTexture("../assets/textures/skin2.png");
     skin3TextureID = loadTexture("../assets/textures/skin3.png");
     skin4TextureID = loadTexture("../assets/textures/skin4.png");
-    racketHandleTextureID = loadTexture("../assets/textures/racket_handle.png");
+    racketHandleTextureID = loadTexture("../assets/textures/racketHandle.png");
     racketSideTextureID = loadTexture("../assets/textures/racket_side2.png");
     racketNetTextureID = loadTexture("../assets/textures/racket_net.png");
     ballTextureID = loadTexture("../assets/textures/ball.png");
 
     scoreBoardTextures[0] = loadTexture("../assets/textures/wood.png");
-    scoreBoardTextures[1] = loadTexture("../assets/textures/dark_green.png");
+    scoreBoardTextures[1] = loadTexture("../assets/textures/darkGreen.png");
     scoreBoardTextures[2] = loadTexture("../assets/textures/yellow.png");
     scoreBoardTextures[3] = loadTexture("../assets/textures/p1.png");
     scoreBoardTextures[4] = loadTexture("../assets/textures/p2.png");
-    scoreBoardTextures[5] = loadTexture("../assets/textures/score_0.png");
-    scoreBoardTextures[6] = loadTexture("../assets/textures/score_15.png");
-    scoreBoardTextures[7] = loadTexture("../assets/textures/score_30.png");
-    scoreBoardTextures[8] = loadTexture("../assets/textures/score_45.png");
-    scoreBoardTextures[9] = loadTexture("../assets/textures/score_60.png");
+    scoreBoardTextures[5] = loadTexture("../assets/textures/score0.png");
+    scoreBoardTextures[6] = loadTexture("../assets/textures/score15.png");
+    scoreBoardTextures[7] = loadTexture("../assets/textures/score30.png");
+    scoreBoardTextures[8] = loadTexture("../assets/textures/score45.png");
+    scoreBoardTextures[9] = loadTexture("../assets/textures/score60.png");
 
     worldTextures[0] = loadTexture("../assets/textures/green.png");
     worldTextures[1] = loadTexture("../assets/textures/wood2.png");
@@ -1176,7 +1176,7 @@ int main(int argc, char *argv[]) {
 
     string itemPath[] = {
             "../assets/models/fence.obj",
-            "../assets/models/MetalChair.obj",
+            "../assets/models/metalChair.obj",
             "../assets/models/sittingMan.obj",
             "../assets/models/standingMan.obj",
             "../assets/models/tree.obj",
