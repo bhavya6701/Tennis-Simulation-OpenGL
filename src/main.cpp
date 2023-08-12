@@ -131,8 +131,8 @@ bool isSpotLightOn = false;
 bool isShadowOn = false;
 
 //VAO for world
-int itemsVertices[10];
-GLuint itemsVAO[10];
+int itemsVertices[12];
+GLuint itemsVAO[12];
 GLuint worldTextures[10], scoreBoardTextures[10];
 
 void drawWorld(GLuint shaderProgram, float xPos, float xNeg, float zPos, float zNeg, float yGround, float scaling);
@@ -1185,9 +1185,11 @@ int main(int argc, char *argv[]) {
             "../assets/models/CavePlatform1_Obj.obj",
             "../assets/models/rock_stone.obj",
             "../assets/models/Rocks.obj",
-            "../assets/models/rabbit_orictolagus_01.obj"
+            "../assets/models/rabbit_orictolagus_01.obj",
+            "../assets/models/sittingMan.obj",
+            "../assets/models/standingMan.obj"
     };
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 12; i++) {
         itemsVAO[i] = setupModelEBO(itemPath[i], itemsVertices[i]);
     }
 
@@ -1376,6 +1378,8 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         float pushback = 10 * count;
         for (float i = zNeg; i < zPos; i++) {
             float x = xNeg - 10 - pushback;
+
+            glBindVertexArray(itemsVAO[1]);
             glBindTexture(GL_TEXTURE_2D, worldTextures[3]);
             translationMatrix = translate(mat4(1.0f), vec3(x - 1.5f, yGround - 1.0f, i));
             scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
@@ -1391,15 +1395,36 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
 
+            glBindVertexArray(itemsVAO[10]);
+            glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
+            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 3.0f, i - 2.2));
+            scalingMatrix = scale(mat4(1.0f), vec3(scaling / 10.0f));
+            worldMatrix = translationMatrix * scalingMatrix;
+            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
+
+            glBindVertexArray(itemsVAO[2]);
+            glBindTexture(GL_TEXTURE_2D, worldTextures[4]);
             translationMatrix = translate(mat4(1.0f), vec3(x - 2.0, yGround - 1.0f, i + 2.3));
+            scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.5f, 0.0f));
             worldMatrix = translationMatrix * scalingMatrix * rotatingLeftMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
+
+            glBindVertexArray(itemsVAO[10]);
+            glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
+            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 3.0f, i + 2.3));
+            scalingMatrix = scale(mat4(1.0f), vec3(scaling / 10.0f));
+            worldMatrix = translationMatrix * scalingMatrix;
+            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
+
             i = i + 15 + count * 2.5;
         }
     }
     for (float i = zNeg; i < zPos; i++) {
         glBindVertexArray(itemsVAO[3]);
+        glBindTexture(GL_TEXTURE_2D, worldTextures[4]);
         translationMatrix = translate(mat4(1.0f), vec3(xPos + 12.0f, yGround - 1.0f, i));
         scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
         worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
