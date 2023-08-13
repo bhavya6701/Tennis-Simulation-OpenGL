@@ -1025,12 +1025,30 @@ void drawFrame(GLuint shaderProgram) {
     // End Frame
 }
 
+bool intersectsRacket(const vec3 &racketPosition, const vec3 &racketNormal) {
+    vec3 ballToRacket = racketPosition - ballPosition;
+    float distance = dot(ballToRacket, racketNormal);
+
+    if (abs(distance) <= ballScaling.x) {
+        vec3 projectedPoint = ballPosition + distance * racketNormal;
+        vec3 closestPointOnRacket = clamp(projectedPoint, racketPosition - racketNetScaling.x / 2,
+                                          racketPosition + racketNetScaling.x / 2);
+
+        float distanceToClosestPoint = length(projectedPoint - closestPointOnRacket);
+        if (distanceToClosestPoint <= ballScaling.x) {
+            return true; // Collision detected
+        }
+    }
+    return false; // No collision
+}
+
 void updateBallPosition() {
     // Racket Position
     racket1Position = racketNetTransformation[0][3];
     racket2Position = racketNetTransformation[1][3];
     vec3 racket1NormalWorld = vec3(transpose(inverse(racketNetTransformation[0])) * vec4(vec3(0.0f, 0.0f, 1.0f), 0.0f));
-    vec3 racket2NormalWorld = vec3(transpose(inverse(racketNetTransformation[1])) * vec4(vec3(0.0f, 0.0f, -1.0f), 0.0f));
+    vec3 racket2NormalWorld = vec3(
+            transpose(inverse(racketNetTransformation[1])) * vec4(vec3(0.0f, 0.0f, -1.0f), 0.0f));
     racket1Normal = normalize(racket1NormalWorld);
     racket2Normal = normalize(racket2NormalWorld);
 
@@ -1042,11 +1060,13 @@ void updateBallPosition() {
         ballVelocity.y = abs(ballVelocity.y * DAMPING);
     }
 
-    // Check ball hit the racket
-    if (intersectsPlane(groundPoint, racket1Normal)) {
-        ballVelocity.y = abs(ballVelocity.y * 2);
-    } else if (isBallTouchingRacket(racket2Position, racketNetScaling)) {
-        ballVelocity.z = -abs(ballVelocity.z * 2);
+    if (intersectsRacket(racket1Position, racket1Normal)) {
+        // Reflect the ball's velocity off racket1
+        ballVelocity = ballVelocity - 2.0f * dot(ballVelocity, racket1Normal) * racket1Normal;
+    }
+    if (intersectsRacket(racket2Position, racket2Normal)) {
+        // Reflect the ball's velocity off racket2
+        ballVelocity = ballVelocity - 2.0f * dot(ballVelocity, racket2Normal) * racket2Normal;
     }
 
     ballPosition += dt * ballVelocity + 0.5f * dt * dt * vec3(0.0f, -GRAVITY, 0.0f);
