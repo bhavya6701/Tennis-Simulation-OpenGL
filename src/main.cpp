@@ -44,8 +44,6 @@ GLuint tennisCourtGrassTextureID, tennisCourtLineTextureID, blueBoxTextureID, sk
         whiteTextureID, silverPoleTextureID, tennisNetTextureID;
 GLuint playerTitleTextureID[2];
 
-int p1Score = 0, p2Score = 0;
-
 // Frame buffer object for shadow mapping
 GLuint depthMapFbo;
 
@@ -124,9 +122,13 @@ int selectedModel = 0;
 vec3 ballPosition(5.0f, 20.0f, 35.0f);
 vec3 ballScaling(0.25f, 0.25f, 0.25f);
 vec3 ballVelocity(0.0f, 0.0f, 0.0f);
+float ballRadius = ballScaling.x;
 const float GRAVITY = 9.807f, DAMPING = 1.0f;
 vec3 groundPoint(0.0f, -1.0f, 0.0f);
 vec3 groundNormal(0.0f, 1.0f, 0.0f);
+vec3 tennisNetPosition(0.0f, 2.12f, 0.0f);
+vec3 tennisNetNormal(0.0f, 0.0f, 1.0f);
+vec3 tennisScaling(48.0f, 4.14f, 0.5f);
 vec3 racket1Position, racket2Position, racket1Normal, racket2Normal;
 vec3 racketNetScaling(1.33f, 1.66f, 0.16f);
 vec3 ballRotationAxis(0.0f, 1.0f, 0.0f);
@@ -135,6 +137,10 @@ vec3 ballAngularAxis(0.0f, 1.0f, 0.0f);
 float ballAngularVelocity = 0.0f;
 mat4 racketNetTransformation[] = {rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f)),
                                   rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f))};
+int nextServe = 1;
+int bounce = 0;
+int lastBounceRacket = 0;
+int p1Score = 0, p2Score = 0;
 
 // Light parameters
 vec3 lightPosition;
@@ -147,29 +153,63 @@ int itemsVertices[6];
 GLuint itemsVAO[6];
 GLuint worldTextures[10], scoreBoardTextures[10];
 
-//Assumes the sphere is evenly scaled
-bool containsPoint(vec3 position) {
-    float radius = ballScaling.x; //This is where the assumption lies
-    float dist = distance(ballPosition, position);
-    return dist <= radius;
+// Check if the ball touches the ground
+bool intersectsGround(vec3 planePoint, vec3 planeNormal) {
+    return dot(planeNormal, ballPosition - planePoint) < ballRadius;
 }
 
-//Assumes the sphere is evenly scaled
-bool intersectsPlane(vec3 planePoint, vec3 planeNormal) {
-    //We simply compare the distance between the ground and sphere center, with its radius
-    float radius = ballScaling.x;
-    return dot(planeNormal, ballPosition - planePoint) < radius;
+bool intersectsRacket(const vec3 &racketPosition, const vec3 &racketNormal, float racketWidth, float racketHeight) {
+    vec3 ballToRacket = racketPosition - ballPosition;
+    float distance = dot(ballToRacket, racketNormal);
+
+    if (abs(distance) <= ballRadius) {
+        vec3 projectedPoint = ballPosition + distance * racketNormal;
+        vec3 closestPointOnRacket = clamp(projectedPoint, racketPosition - racketWidth / 2,
+                                          racketPosition + racketWidth / 2);
+
+        // Check if the projected point is within the width and height of the racket
+        bool withinWidthRange = (closestPointOnRacket.x >= racketPosition.x - racketWidth / 2 &&
+                                 closestPointOnRacket.x <= racketPosition.x + racketWidth / 2);
+        bool withinHeightRange = (closestPointOnRacket.y >= racketPosition.y - racketHeight / 2 &&
+                                  closestPointOnRacket.y <= racketPosition.y + racketHeight / 2);
+
+        if (withinWidthRange && withinHeightRange) {
+            float distanceToClosestPoint = length(projectedPoint - closestPointOnRacket);
+            if (distanceToClosestPoint <= ballRadius) {
+                return true; // Collision detected within the racket's width and height
+            }
+        }
+    }
+    return false; // No collision
 }
 
-//Check if the ball touches the racket
-bool isBallTouchingRacket(vec3 racketPosition, vec3 racketSize) {
-    return ballPosition.x <= racketPosition.x + racketSize.x / 2.0f &&
-           ballPosition.x >= racketPosition.x - racketSize.x / 2.0f &&
-           ballPosition.y <= racketPosition.y + racketSize.y / 2.0f &&
-           ballPosition.y >= racketPosition.y - racketSize.y / 2.0f;
-}
+// Check if the ball touches the net
+bool intersectsNet(const vec3 &netPosition, const vec3 &netNormal, float netWidth, float netHeight) {
+    vec3 ballToNet = netPosition - ballPosition;
+    float distance = dot(ballToNet, netNormal);
 
-void drawWorld(GLuint shaderProgram, float xPos, float xNeg, float zPos, float zNeg, float yGround, float scaling);
+    if (abs(distance) <= ballRadius) {
+        vec3 projectedPoint = ballPosition + distance * netNormal;
+        vec3 closestPointOnNet = projectedPoint; // Assuming the net is a plane, just use the projected point
+
+        // Check if the projected point is within the width and height of the net on either side
+        float halfWidth = netWidth / 2;
+        float halfHeight = netHeight / 2;
+
+        bool withinWidthRange = (closestPointOnNet.x >= netPosition.x - halfWidth &&
+                                 closestPointOnNet.x <= netPosition.x + halfWidth);
+        bool withinHeightRange = (closestPointOnNet.y >= netPosition.y - halfHeight &&
+                                  closestPointOnNet.y <= netPosition.y + halfHeight);
+
+        if (withinWidthRange && withinHeightRange) {
+            float distanceToClosestPoint = length(projectedPoint - closestPointOnNet);
+            if (distanceToClosestPoint <= ballRadius) {
+                return true; // Collision detected within the net's width and height
+            }
+        }
+    }
+    return false; // No collision
+}
 
 /**
  * Sets a uniform vec4 variable in the shader
@@ -428,20 +468,20 @@ void handleInputs() {
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         if (cameraIndex == 2) {
             modelPosition[selectedModel].z =
-                    modelPosition[selectedModel].z < 54.17f ? modelPosition[selectedModel].z + 0.25f : 54.17f;
+                    modelPosition[selectedModel].z < 54.17f ? modelPosition[selectedModel].z + 0.125f : 54.17f;
         } else {
             modelPosition[selectedModel].z =
-                    modelPosition[selectedModel].z > -54.17f ? modelPosition[selectedModel].z - 0.25f : -54.17f;
+                    modelPosition[selectedModel].z > -54.17f ? modelPosition[selectedModel].z - 0.125f : -54.17f;
         }
     }
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
         if (cameraIndex == 2) {
             modelPosition[selectedModel].z =
-                    modelPosition[selectedModel].z > -54.17f ? modelPosition[selectedModel].z - 0.25f : -54.17f;
+                    modelPosition[selectedModel].z > -54.17f ? modelPosition[selectedModel].z - 0.125f : -54.17f;
         } else {
             modelPosition[selectedModel].z =
-                    modelPosition[selectedModel].z < 54.17f ? modelPosition[selectedModel].z + 0.25f : 54.17f;
+                    modelPosition[selectedModel].z < 54.17f ? modelPosition[selectedModel].z + 0.125f : 54.17f;
         }
     }
 
@@ -453,10 +493,10 @@ void handleInputs() {
         } else {
             if (cameraIndex == 2) {
                 modelPosition[selectedModel].x =
-                        modelPosition[selectedModel].x < 25.0f ? modelPosition[selectedModel].x + 0.25f : 25.0f;
+                        modelPosition[selectedModel].x < 25.0f ? modelPosition[selectedModel].x + 0.125f : 25.0f;
             } else {
                 modelPosition[selectedModel].x =
-                        modelPosition[selectedModel].x > -25.0f ? modelPosition[selectedModel].x - 0.25f : -25.0f;
+                        modelPosition[selectedModel].x > -25.0f ? modelPosition[selectedModel].x - 0.125f : -25.0f;
             }
         }
     }
@@ -690,7 +730,7 @@ void createTennisCourt(GLuint shaderProgram) {
     SetUniform1Value(colorShaderProgram, "isTransparent", 1);
     glBindTexture(GL_TEXTURE_2D, tennisNetTextureID);
     translationMatrix = translate(mat4(1.0f), vec3(0.0f, 2.07f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(48.0f, 4.14f, 0.5f));
+    scalingMatrix = scale(mat4(1.0f), tennisScaling);
     worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
@@ -755,56 +795,148 @@ void createTennisCourt(GLuint shaderProgram) {
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
-    // P1 - Score texture determination
-    switch (p1Score) {
-        case 0:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[5]);
-            break;
-        case 15:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[6]);
-            break;
-        case 30:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[7]);
-            break;
-        case 45:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[8]);
-            break;
-        case 60:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[9]);
-            break;
-    }
-
-    // P1 - draw score
+    // P1 - score
+    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[5 + (p1Score < 5 ? p1Score : 0)]);
     translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 5.0f, 5.0f));
     scalingMatrix = scale(mat4(1.0f), vec3(0.01f, 2.5f, 2.5f));
     worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
-    // P2 - Score texture determination
-    switch (p2Score) {
-        case 0:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[5]);
-            break;
-        case 15:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[6]);
-            break;
-        case 30:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[7]);
-            break;
-        case 45:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[8]);
-            break;
-        case 60:
-            glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[9]);
-            break;
-    }
-
     // P2 - score
+    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[5 + (p2Score < 5 ? p2Score : 0)]);
     translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 5.0f, -5.0f));
     worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+}
+
+void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float zPos, float yGround, float scaling) {
+    // Draw textured geometry
+    glActiveTexture(GL_TEXTURE0);
+    mat4 rotatingLeftMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
+    mat4 rotatingRightMatrix = rotate(mat4(1.0f), radians(-90.0f), vec3(0.0f, 1.0f, 0.0f));
+
+    glBindTexture(GL_TEXTURE_2D, worldTextures[0]);
+    translationMatrix = translate(mat4(1.0f), vec3(0.0f, -1.1f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(300.00f, 0.05f, 300.00f));
+    groundTennisHierarchicalMatrix = translationMatrix;
+    worldMatrix = groundTennisHierarchicalMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // back
+    scalingMatrix = scale(mat4(1.0f), vec3(scaling / 15) + vec3(0.1f, 0.0f, 0.0f));
+    for (float i = xNeg; i < xPos; i++) {
+        glBindVertexArray(itemsVAO[0]);
+        glBindTexture(GL_TEXTURE_2D, worldTextures[1]);
+        translationMatrix = translate(mat4(1.0f), vec3(i + 4.0f, yGround + 3.6f, zNeg - 10.0f));
+        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix * rotatingRightMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
+        i = i + 13;
+    }
+    // front
+    for (float i = xNeg; i < xPos; i++) {
+        translationMatrix = translate(mat4(1.0f), vec3(i + 5.0f, yGround + 3.6f, zPos + 10.0f));
+        worldMatrix = translationMatrix * scalingMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
+        i = i + 13;
+    }
+
+    //left
+    scalingMatrix = scale(mat4(1.0f), vec3(scaling / 15) + vec3(0.0f, 0.0f, 0.2f));
+    for (float i = zNeg; i < zPos; i++) {
+        translationMatrix = translate(mat4(1.0f), vec3(xNeg - 7.0f, yGround + 3.6f, i + 5.0f));
+        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
+        i = i + 13;
+    }
+
+    //Right
+    for (float i = zNeg; i < zPos; i++) {
+        translationMatrix = translate(mat4(1.0f), vec3(xPos + 7.0f, yGround + 3.6f, i + 5.0f));
+        worldMatrix = translationMatrix * scalingMatrix * rotatingLeftMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
+        i = i + 13;
+    }
+
+    //    chair on left in court
+    glBindVertexArray(itemsVAO[1]);
+    glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
+    translationMatrix = translate(mat4(1.0f), vec3(xPos + 2.0f, yGround, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
+    worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
+
+    for (int count = 0; count < 2; count++) {
+        float pushback = 10 * count;
+        for (float i = zNeg; i < zPos; i++) {
+            float x = xNeg - 10 - pushback;
+
+            glBindVertexArray(itemsVAO[1]);
+            glBindTexture(GL_TEXTURE_2D, worldTextures[3]);
+            translationMatrix = translate(mat4(1.0f), vec3(x - 1.5f, yGround - 0.3f, i));
+            scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
+            worldMatrix = translationMatrix * scalingMatrix * rotatingLeftMatrix;
+            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+            glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
+
+            glBindVertexArray(itemsVAO[2]);
+            glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
+            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.5f, i - 2.2));
+            scalingMatrix = scale(mat4(1.0f), vec3(scaling / 10.0f));
+            worldMatrix = translationMatrix * scalingMatrix;
+            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
+
+            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.7f, i + 2.3));
+            worldMatrix = translationMatrix * scalingMatrix;
+            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
+
+            i = i + 15 + count * 2.5;
+        }
+    }
+    for (float i = zNeg; i < zPos; i++) {
+        glBindVertexArray(itemsVAO[3]);
+        translationMatrix = translate(mat4(1.0f), vec3(xPos + 12.0f, yGround - 0.3f, i));
+        scalingMatrix = scale(mat4(1.0f), vec3(scaling / 30.0f));
+        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawElements(GL_TRIANGLES, itemsVertices[3], GL_UNSIGNED_INT, nullptr);
+        i = i + 10;
+    }
+
+    float randX[] = {30.0f, -70.0f, -74.0f, 70.0f, 55.0f, 12.0f, 60.0f, -95.0f};
+    float randZ[] = {-70.0f, 30.0f, -70.0f, -30.0f, 70.0f, 80.0f, 12.0f, -10.0f};
+
+    for (int i = 0; i < 7; i++) {
+        glBindVertexArray(itemsVAO[4]);
+        glBindTexture(GL_TEXTURE_2D, worldTextures[5]);
+        translationMatrix = translate(mat4(1.0f), vec3(randX[i], yGround + 0.7f, randZ[i]));
+        scalingMatrix = scale(mat4(1.0f), vec3(scaling * 1.5f));
+        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawElements(GL_TRIANGLES, itemsVertices[4], GL_UNSIGNED_INT, nullptr);
+
+        i++;
+
+        glBindVertexArray(itemsVAO[5]);
+        glBindTexture(GL_TEXTURE_2D, worldTextures[6]);
+        translationMatrix = translate(mat4(1.0f), vec3(randX[i], yGround + 0.7f, randZ[i]));
+        scalingMatrix = scale(mat4(1.0f), vec3(scaling * 2.5f));
+        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
+        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+        glDrawElements(GL_TRIANGLES, itemsVertices[5], GL_UNSIGNED_INT, nullptr);
+    }
+
+    glBindVertexArray(0);
+    // End Frame
 }
 
 /**
@@ -1025,21 +1157,16 @@ void drawFrame(GLuint shaderProgram) {
     // End Frame
 }
 
-bool intersectsRacket(const vec3 &racketPosition, const vec3 &racketNormal) {
-    vec3 ballToRacket = racketPosition - ballPosition;
-    float distance = dot(ballToRacket, racketNormal);
-
-    if (abs(distance) <= ballScaling.x) {
-        vec3 projectedPoint = ballPosition + distance * racketNormal;
-        vec3 closestPointOnRacket = clamp(projectedPoint, racketPosition - racketNetScaling.x / 2,
-                                          racketPosition + racketNetScaling.x / 2);
-
-        float distanceToClosestPoint = length(projectedPoint - closestPointOnRacket);
-        if (distanceToClosestPoint <= ballScaling.x) {
-            return true; // Collision detected
-        }
+void resetBall(int player) {
+    if (player == 1) {
+        ballPosition = vec3(5.0f, 20.0f, 35.0f);
+        ballScaling = vec3(0.25f, 0.25f, 0.25f);
+        ballVelocity = vec3(0.0f, 0.0f, 0.0f);
+    } else {
+        ballPosition = vec3(-5.0f, 20.0f, -35.0f);
+        ballScaling = vec3(0.25f, 0.25f, 0.25f);
+        ballVelocity = vec3(0.0f, 0.0f, 0.0f);
     }
-    return false; // No collision
 }
 
 void updateBallPosition() {
@@ -1049,6 +1176,7 @@ void updateBallPosition() {
     vec3 racket1NormalWorld = vec3(transpose(inverse(racketNetTransformation[0])) * vec4(vec3(0.0f, 0.0f, 1.0f), 0.0f));
     vec3 racket2NormalWorld = vec3(
             transpose(inverse(racketNetTransformation[1])) * vec4(vec3(0.0f, 0.0f, -1.0f), 0.0f));
+    vec3 tennisNetPoint = vec3(transpose(inverse(racketNetTransformation[0])) * vec4(vec3(0.0f, 0.0f, 0.0f), 1.0f));
     racket1Normal = normalize(racket1NormalWorld);
     racket2Normal = normalize(racket2NormalWorld);
 
@@ -1056,22 +1184,59 @@ void updateBallPosition() {
     ballVelocity += vec3(0.0f, -GRAVITY, 0.0f) * dt;
 
     // Check ball bounce on the ground
-    if (intersectsPlane(groundPoint, groundNormal)) {
+    if (intersectsGround(groundPoint, groundNormal)) {
         ballVelocity.y = abs(ballVelocity.y * DAMPING);
+        bounce++;
     }
 
-    if (intersectsRacket(racket1Position, racket1Normal)) {
+    // Check ball bounce on the racket 1
+    if (intersectsRacket(racket1Position, racket1Normal, racketNetScaling.x, racketNetScaling.y)) {
         // Reflect the ball's velocity off racket1
         ballVelocity = ballVelocity - 2.0f * dot(ballVelocity, racket1Normal) * racket1Normal;
+        bounce = 0;
+        lastBounceRacket = 1;
     }
-    if (intersectsRacket(racket2Position, racket2Normal)) {
+
+    // Check ball bounce on the racket 2
+    if (intersectsRacket(racket2Position, racket2Normal, racketNetScaling.x, racketNetScaling.y)) {
         // Reflect the ball's velocity off racket2
         ballVelocity = ballVelocity - 2.0f * dot(ballVelocity, racket2Normal) * racket2Normal;
+        bounce = 0;
+        lastBounceRacket = 2;
+    }
+
+    // Check ball bounce on the net
+    if (intersectsNet(tennisNetPosition, tennisNetNormal, tennisScaling.x, tennisScaling.y)) {
+        // Reflect the ball's velocity off the net
+        ballVelocity = ballVelocity - 2.0f * dot(ballVelocity, tennisNetNormal) * tennisNetNormal;
     }
 
     ballPosition += dt * ballVelocity + 0.5f * dt * dt * vec3(0.0f, -GRAVITY, 0.0f);
     ballRotationAxis = mix(ballRotationAxis, ballAngularAxis, dt);
     ballRotationAngle += dt * ballAngularVelocity;
+}
+
+void checkScore() {
+    if (ballPosition.x > 25.0f || ballPosition.x < -25.0f || ballPosition.z > 54.17f || ballPosition.z < -54.17f) {
+        if (bounce == 0) {
+            if (lastBounceRacket == 1) {
+                p2Score++;
+                nextServe = 2;
+            } else if (lastBounceRacket == 2) {
+                p1Score++;
+                nextServe = 1;
+            }
+        } else if (bounce >= 1) {
+            if (lastBounceRacket == 1) {
+                p1Score++;
+                nextServe = 1;
+            } else if (lastBounceRacket == 2) {
+                p2Score++;
+                nextServe = 2;
+            }
+        }
+        resetBall(nextServe);
+    }
 }
 
 /**
@@ -1083,7 +1248,7 @@ void processUpdates() {
     lastFrameTime += dt;
 
     updateBallPosition();
-
+    checkScore();
 
     // Update view matrix
     if (cameraIndex == 1) {
@@ -1408,133 +1573,4 @@ int main(int argc, char *argv[]) {
     glfwTerminate();
 
     return 0;
-}
-
-
-void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float zPos, float yGround, float scaling) {
-    // Draw textured geometry
-    glActiveTexture(GL_TEXTURE0);
-    mat4 rotatingLeftMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
-    mat4 rotatingRightMatrix = rotate(mat4(1.0f), radians(-90.0f), vec3(0.0f, 1.0f, 0.0f));
-
-    glBindTexture(GL_TEXTURE_2D, worldTextures[0]);
-    translationMatrix = translate(mat4(1.0f), vec3(0.0f, -1.1f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(300.00f, 0.05f, 300.00f));
-    groundTennisHierarchicalMatrix = translationMatrix;
-    worldMatrix = groundTennisHierarchicalMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // back
-    scalingMatrix = scale(mat4(1.0f), vec3(scaling / 15) + vec3(0.1f, 0.0f, 0.0f));
-    for (float i = xNeg; i < xPos; i++) {
-        glBindVertexArray(itemsVAO[0]);
-        glBindTexture(GL_TEXTURE_2D, worldTextures[1]);
-        translationMatrix = translate(mat4(1.0f), vec3(i + 4.0f, yGround + 3.6f, zNeg - 10.0f));
-        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix * rotatingRightMatrix;
-        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-        glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
-        i = i + 13;
-    }
-    // front
-    for (float i = xNeg; i < xPos; i++) {
-        translationMatrix = translate(mat4(1.0f), vec3(i + 5.0f, yGround + 3.6f, zPos + 10.0f));
-        worldMatrix = translationMatrix * scalingMatrix;
-        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-        glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
-        i = i + 13;
-    }
-
-    //left
-    scalingMatrix = scale(mat4(1.0f), vec3(scaling / 15) + vec3(0.0f, 0.0f, 0.2f));
-    for (float i = zNeg; i < zPos; i++) {
-        translationMatrix = translate(mat4(1.0f), vec3(xNeg - 7.0f, yGround + 3.6f, i + 5.0f));
-        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
-        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-        glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
-        i = i + 13;
-    }
-
-    //Right
-    for (float i = zNeg; i < zPos; i++) {
-        translationMatrix = translate(mat4(1.0f), vec3(xPos + 7.0f, yGround + 3.6f, i + 5.0f));
-        worldMatrix = translationMatrix * scalingMatrix * rotatingLeftMatrix;
-        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-        glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
-        i = i + 13;
-    }
-
-    //    chair on left in court
-    glBindVertexArray(itemsVAO[1]);
-    glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
-    translationMatrix = translate(mat4(1.0f), vec3(xPos + 2.0f, yGround, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
-    worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
-
-    for (int count = 0; count < 2; count++) {
-        float pushback = 10 * count;
-        for (float i = zNeg; i < zPos; i++) {
-            float x = xNeg - 10 - pushback;
-
-            glBindVertexArray(itemsVAO[1]);
-            glBindTexture(GL_TEXTURE_2D, worldTextures[3]);
-            translationMatrix = translate(mat4(1.0f), vec3(x - 1.5f, yGround - 0.3f, i));
-            scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
-            worldMatrix = translationMatrix * scalingMatrix * rotatingLeftMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
-
-            glBindVertexArray(itemsVAO[2]);
-            glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
-            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.5f, i - 2.2));
-            scalingMatrix = scale(mat4(1.0f), vec3(scaling / 10.0f));
-            worldMatrix = translationMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
-
-            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.7f, i + 2.3));
-            worldMatrix = translationMatrix * scalingMatrix;
-            SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
-
-            i = i + 15 + count * 2.5;
-        }
-    }
-    for (float i = zNeg; i < zPos; i++) {
-        glBindVertexArray(itemsVAO[3]);
-        translationMatrix = translate(mat4(1.0f), vec3(xPos + 12.0f, yGround - 0.3f, i));
-        scalingMatrix = scale(mat4(1.0f), vec3(scaling / 30.0f));
-        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
-        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-        glDrawElements(GL_TRIANGLES, itemsVertices[3], GL_UNSIGNED_INT, nullptr);
-        i = i + 10;
-    }
-
-    float randX[] = {30.0f, -70.0f, -74.0f, 70.0f, 55.0f, 12.0f, 60.0f, -95.0f};
-    float randZ[] = {-70.0f, 30.0f, -70.0f, -30.0f, 70.0f, 80.0f, 12.0f, -10.0f};
-
-    for (int i = 0; i < 7; i++) {
-        glBindVertexArray(itemsVAO[4]);
-        glBindTexture(GL_TEXTURE_2D, worldTextures[5]);
-        translationMatrix = translate(mat4(1.0f), vec3(randX[i], yGround + 0.7f, randZ[i]));
-        scalingMatrix = scale(mat4(1.0f), vec3(scaling * 1.5f));
-        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
-        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-        glDrawElements(GL_TRIANGLES, itemsVertices[4], GL_UNSIGNED_INT, nullptr);
-
-        i++;
-
-        glBindVertexArray(itemsVAO[5]);
-        glBindTexture(GL_TEXTURE_2D, worldTextures[6]);
-        translationMatrix = translate(mat4(1.0f), vec3(randX[i], yGround + 0.7f, randZ[i]));
-        scalingMatrix = scale(mat4(1.0f), vec3(scaling * 2.5f));
-        worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
-        SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-        glDrawElements(GL_TRIANGLES, itemsVertices[5], GL_UNSIGNED_INT, nullptr);
-    }
-
-    glBindVertexArray(0);
-    // End Frame
 }
