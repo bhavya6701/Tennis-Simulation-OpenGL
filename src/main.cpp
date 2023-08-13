@@ -56,7 +56,7 @@ int cubeVerticesCount, sphereVerticesCount;
 
 // Matrix declarations
 mat4 worldMatrix, viewMatrix, projectionMatrix, rotationMatrix, translationMatrix, scalingMatrix, modelHierarchicalMatrix,
-        groundTennisHierarchicalMatrix, overallTranslationMatrix;
+        groundTennisHierarchicalMatrix;
 
 // Tilting parameters for camera
 float dt = 0.0f;
@@ -120,17 +120,21 @@ mat4 defaultArmTranslationMatrix[] = {
 int selectedFigure = 0;
 int selectedModel = 0;
 
-// Ball parameters
+// Ball bounce parameters
 vec3 ballPosition(5.0f, 20.0f, 35.0f);
-vec3 ballScaling(0.2f, 0.2f, 0.2f);
+vec3 ballScaling(0.25f, 0.25f, 0.25f);
 vec3 ballVelocity(0.0f, 0.0f, 0.0f);
-const float GRAVITY = 9.807f, DAMPING = 0.9f;
+const float GRAVITY = 9.807f, DAMPING = 1.0f;
 vec3 groundPoint(0.0f, -1.0f, 0.0f);
 vec3 groundNormal(0.0f, 1.0f, 0.0f);
+vec3 racket1Position, racket2Position, racket1Normal, racket2Normal;
+vec3 racketNetScaling(1.33f, 1.66f, 0.16f);
 vec3 ballRotationAxis(0.0f, 1.0f, 0.0f);
 float ballRotationAngle = 0.0f;
 vec3 ballAngularAxis(0.0f, 1.0f, 0.0f);
 float ballAngularVelocity = 0.0f;
+mat4 racketNetTransformation[] = {rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f)),
+                                  rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f))};
 
 // Light parameters
 vec3 lightPosition;
@@ -155,7 +159,14 @@ bool intersectsPlane(vec3 planePoint, vec3 planeNormal) {
     //We simply compare the distance between the ground and sphere center, with its radius
     float radius = ballScaling.x;
     return dot(planeNormal, ballPosition - planePoint) < radius;
-    return false;
+}
+
+//Check if the ball touches the racket
+bool isBallTouchingRacket(vec3 racketPosition, vec3 racketSize) {
+    return ballPosition.x <= racketPosition.x + racketSize.x / 2.0f &&
+           ballPosition.x >= racketPosition.x - racketSize.x / 2.0f &&
+           ballPosition.y <= racketPosition.y + racketSize.y / 2.0f &&
+           ballPosition.y >= racketPosition.y - racketSize.y / 2.0f;
 }
 
 void drawWorld(GLuint shaderProgram, float xPos, float xNeg, float zPos, float zNeg, float yGround, float scaling);
@@ -415,14 +426,23 @@ void handleInputs() {
 
     // Move model to +z direction
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        modelPosition[selectedModel].z =
-                modelPosition[selectedModel].z > -54.17f ? modelPosition[selectedModel].z - 0.5f : -54.17f;
+        if (cameraIndex == 2) {
+            modelPosition[selectedModel].z =
+                    modelPosition[selectedModel].z < 54.17f ? modelPosition[selectedModel].z + 0.25f : 54.17f;
+        } else {
+            modelPosition[selectedModel].z =
+                    modelPosition[selectedModel].z > -54.17f ? modelPosition[selectedModel].z - 0.25f : -54.17f;
+        }
     }
 
-    // Move model to -z direction
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        modelPosition[selectedModel].z =
-                modelPosition[selectedModel].z < 54.17f ? modelPosition[selectedModel].z + 0.5f : 54.17f;
+        if (cameraIndex == 2) {
+            modelPosition[selectedModel].z =
+                    modelPosition[selectedModel].z > -54.17f ? modelPosition[selectedModel].z - 0.25f : -54.17f;
+        } else {
+            modelPosition[selectedModel].z =
+                    modelPosition[selectedModel].z < 54.17f ? modelPosition[selectedModel].z + 0.25f : 54.17f;
+        }
     }
 
     // Rotate model to the left around y-axis by 5 degrees
@@ -431,8 +451,13 @@ void handleInputs() {
             // 5 degrees = 0.0872665 radians
             yRotationAngle[selectedModel] -= radians(rotateByAngle);
         } else {
-            modelPosition[selectedModel].x =
-                    modelPosition[selectedModel].x > -25.0f ? modelPosition[selectedModel].x - 0.5f : -25.0f;
+            if (cameraIndex == 2) {
+                modelPosition[selectedModel].x =
+                        modelPosition[selectedModel].x < 25.0f ? modelPosition[selectedModel].x + 0.25f : 25.0f;
+            } else {
+                modelPosition[selectedModel].x =
+                        modelPosition[selectedModel].x > -25.0f ? modelPosition[selectedModel].x - 0.25f : -25.0f;
+            }
         }
     }
 
@@ -441,21 +466,24 @@ void handleInputs() {
         if (glfwGetKey(window, GLFW_KEY_CAPS_LOCK)) {
             yRotationAngle[selectedModel] += radians(rotateByAngle);
         } else {
-            modelPosition[selectedModel].x =
-                    modelPosition[selectedModel].x < 25.0f ? modelPosition[selectedModel].x + 0.5f : 25.0f;
+            if (cameraIndex == 2) {
+                modelPosition[selectedModel].x =
+                        modelPosition[selectedModel].x > -25.0f ? modelPosition[selectedModel].x - 0.25f : -25.0f;
+            } else {
+                modelPosition[selectedModel].x =
+                        modelPosition[selectedModel].x < 25.0f ? modelPosition[selectedModel].x + 0.25f : 25.0f;
+            }
         }
     }
 
     // Select 1st model
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
         selectedModel = 0;
-        cameraPosition[cameraIndex] = modelPosition[selectedModel] + vec3(0.0f, 7.75f, 50.0f);
     }
 
     // Select 2nd model
     if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
         selectedModel = 1;
-        cameraPosition[cameraIndex] = modelPosition[selectedModel] + vec3(0.0f, 7.75f, 50.0f);
     }
 
     // Select part of the arm
@@ -816,7 +844,6 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-        overallTranslationMatrix = translationMatrix;
 
         // Cube 2 (Arm top)
         glBindTexture(GL_TEXTURE_2D, skin2TextureID);
@@ -827,7 +854,6 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 3 (hand - palm)
         glBindTexture(GL_TEXTURE_2D, skin3TextureID);
@@ -837,7 +863,6 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 4.1 (hand - thumb)
         glBindTexture(GL_TEXTURE_2D, skin4TextureID);
@@ -888,7 +913,6 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 6 (Tennis loop bottom)
         glBindTexture(GL_TEXTURE_2D, racketSideTextureID);
@@ -898,7 +922,6 @@ void drawFrame(GLuint shaderProgram) {
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
 
         // Cube 7 (Tennis loop left)
         translationMatrix = translate(mat4(1.0f), vec3(-0.66f, 0.83f, 0.0f));
@@ -924,11 +947,11 @@ void drawFrame(GLuint shaderProgram) {
         // Cube 10 (Racket net)
         glBindTexture(GL_TEXTURE_2D, racketNetTextureID);
         translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.83f, 0.0f));
-        scalingMatrix = scale(mat4(1.0f), vec3(1.33f, 1.66f, 0.16f));
+        scalingMatrix = scale(mat4(1.0f), racketNetScaling);
         worldMatrix = modelHierarchicalMatrix * translationMatrix * scalingMatrix;
         SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
         glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-        overallTranslationMatrix = overallTranslationMatrix * translationMatrix;
+        racketNetTransformation[i] = modelHierarchicalMatrix * translationMatrix;
 
         // Cube 9 (Letter P)
         glBindTexture(GL_TEXTURE_2D, playerTitleTextureID[i]);
@@ -1004,14 +1027,28 @@ void drawFrame(GLuint shaderProgram) {
 
 void updateBallPosition() {
     // Racket Position
-    vec3 racketPosition = vec3(overallTranslationMatrix[3]);
+    racket1Position = racketNetTransformation[0][3];
+    racket2Position = racketNetTransformation[1][3];
+    vec3 racket1NormalWorld = vec3(transpose(inverse(racketNetTransformation[0])) * vec4(vec3(0.0f, 0.0f, 1.0f), 0.0f));
+    vec3 racket2NormalWorld = vec3(transpose(inverse(racketNetTransformation[1])) * vec4(vec3(0.0f, 0.0f, -1.0f), 0.0f));
+    racket1Normal = normalize(racket1NormalWorld);
+    racket2Normal = normalize(racket2NormalWorld);
 
     // Update ball position
     ballVelocity += vec3(0.0f, -GRAVITY, 0.0f) * dt;
 
+    // Check ball bounce on the ground
     if (intersectsPlane(groundPoint, groundNormal)) {
         ballVelocity.y = abs(ballVelocity.y * DAMPING);
     }
+
+    // Check ball hit the racket
+    if (intersectsPlane(groundPoint, racket1Normal)) {
+        ballVelocity.y = abs(ballVelocity.y * 2);
+    } else if (isBallTouchingRacket(racket2Position, racketNetScaling)) {
+        ballVelocity.z = -abs(ballVelocity.z * 2);
+    }
+
     ballPosition += dt * ballVelocity + 0.5f * dt * dt * vec3(0.0f, -GRAVITY, 0.0f);
     ballRotationAxis = mix(ballRotationAxis, ballAngularAxis, dt);
     ballRotationAngle += dt * ballAngularVelocity;
@@ -1029,10 +1066,12 @@ void processUpdates() {
 
 
     // Update view matrix
-    if (cameraIndex != 0) {
+    if (cameraIndex == 1) {
         cameraLookAt = -vec3(0.0f, 0.0f, 0.5f);
-        cameraPosition[1] = vec3(modelPosition[0].x, modelPosition[0].y + 2.5, modelPosition[0].z - 0.5);
-        cameraPosition[2] = vec3(modelPosition[1].x, modelPosition[1].y + 2.5, modelPosition[1].z + 0.5);
+        cameraPosition[1] = vec3(modelPosition[0].x + 2.5f, modelPosition[0].y + 7.5f, modelPosition[0].z + 20.0f);
+    } else if (cameraIndex == 2) {
+        cameraLookAt = vec3(0.0f, 0.0f, 0.5f);
+        cameraPosition[2] = vec3(modelPosition[1].x + 2.5f, modelPosition[1].y + 7.5f, modelPosition[1].z - 20.0f);
     } else {
         cameraLookAt = -cameraPosition[0];
     }
