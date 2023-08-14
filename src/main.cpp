@@ -1353,8 +1353,8 @@ int main(int argc, char *argv[]) {
     // Entering Main Loop
     while (!glfwWindowShouldClose(window)) {
         float lightNearPlane = 0.01f;
-        float lightFarPlane = 100.0f;
-        vec3 lightFocus(0.01);      // the point in 3D space the light "looks" at
+        float lightFarPlane = 200.0f;
+        vec3 lightFocus(0.0f);      // the point in 3D space the light "looks" at
         // light parameters
         if (cameraIndex == 3) {
             cameraRotationAngle = cameraRotationSpeed * dt * 0.5f;
@@ -1371,7 +1371,7 @@ int main(int argc, char *argv[]) {
 
             SetUniform1Value(colorShaderProgram, "isShadowOn", 0);
         } else {
-            lightPosition = vec3(0.0f, 1.0f, 0.0f);
+            lightPosition = vec3(0.0f, 50.0f, 0.0f);
             lightProjectionMatrix = perspective(radians(30.0f),
                                                 (float) DEPTH_MAP_TEXTURE_SIZE / (float) DEPTH_MAP_TEXTURE_SIZE,
                                                 lightNearPlane,
