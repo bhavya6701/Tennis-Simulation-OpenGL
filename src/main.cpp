@@ -355,23 +355,6 @@ GLuint setupModelEBO(string path, int &vertexCount) {
     return VAO;
 }
 
-void resetHome() {
-    cameraPosition[0] = vec3(0.0f, 20.0f, 70.0f);
-    cameraPosition[1] = vec3(-5.0f, 2.25f, -20.0f);
-    cameraPosition[2] = vec3(-5.0f, 2.25f, 20.0f);
-    cameraLookAt = -cameraPosition[0];
-    cameraUp = vec3(0.0f, 1.0f, 0.0f);
-    cameraIndex = 0;
-    modelPosition[0] = vec3(0.0f, 0.25f, 40.0f), modelPosition[1] = vec3(-5.0f, 0.25f, -40.0f);
-    yRotationAngle[0] /= -2, yRotationAngle[1] /= -2;
-    armXRotationAngle[0][0] /= -2, armYRotationAngle[0][0] /= -2, armZRotationAngle[0][0] /= -2;
-    armXRotationAngle[0][1] /= -2, armYRotationAngle[0][1] /= -2, armZRotationAngle[0][1] /= -2;
-    armXRotationAngle[0][2] /= -2, armYRotationAngle[0][2] /= -2, armZRotationAngle[0][2] /= -2;
-    armXRotationAngle[1][0] /= -2, armYRotationAngle[1][0] /= -2, armZRotationAngle[1][0] /= -2;
-    armXRotationAngle[1][1] /= -2, armYRotationAngle[1][1] /= -2, armZRotationAngle[1][1] /= -2;
-    armXRotationAngle[1][2] /= -2, armYRotationAngle[1][2] /= -2, armZRotationAngle[1][2] /= -2;
-}
-
 /**
  * Loads a texture from a file and returns the texture ID
  */
@@ -413,6 +396,26 @@ GLuint loadTexture(const char *filename) {
     stbi_image_free(data);
     glBindTexture(GL_TEXTURE_2D, 0);
     return textureId;
+}
+
+/**
+ * Reset parameters to their initial values
+ */
+void resetHome() {
+    cameraPosition[0] = vec3(0.0f, 20.0f, 70.0f);
+    cameraPosition[1] = vec3(-5.0f, 2.25f, -20.0f);
+    cameraPosition[2] = vec3(-5.0f, 2.25f, 20.0f);
+    cameraLookAt = -cameraPosition[0];
+    cameraUp = vec3(0.0f, 1.0f, 0.0f);
+    cameraIndex = 0;
+    modelPosition[0] = vec3(0.0f, 0.25f, 40.0f), modelPosition[1] = vec3(-5.0f, 0.25f, -40.0f);
+    yRotationAngle[0] /= -2, yRotationAngle[1] /= -2;
+    armXRotationAngle[0][0] /= -2, armYRotationAngle[0][0] /= -2, armZRotationAngle[0][0] /= -2;
+    armXRotationAngle[0][1] /= -2, armYRotationAngle[0][1] /= -2, armZRotationAngle[0][1] /= -2;
+    armXRotationAngle[0][2] /= -2, armYRotationAngle[0][2] /= -2, armZRotationAngle[0][2] /= -2;
+    armXRotationAngle[1][0] /= -2, armYRotationAngle[1][0] /= -2, armZRotationAngle[1][0] /= -2;
+    armXRotationAngle[1][1] /= -2, armYRotationAngle[1][1] /= -2, armZRotationAngle[1][1] /= -2;
+    armXRotationAngle[1][2] /= -2, armYRotationAngle[1][2] /= -2, armZRotationAngle[1][2] /= -2;
 }
 
 /**
@@ -662,6 +665,9 @@ void handleInputs() {
     }
 }
 
+/**
+ * Renders the court inside the world
+ */
 void createTennisCourt(GLuint shaderProgram) {
     // Tennis court grass
     glBindTexture(GL_TEXTURE_2D, tennisCourtGrassTextureID);
@@ -837,6 +843,9 @@ void createTennisCourt(GLuint shaderProgram) {
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 }
 
+/**
+ * Renders the world
+ */
 void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float zPos, float yGround, float scaling) {
     // Draw textured geometry
     glActiveTexture(GL_TEXTURE0);
@@ -851,7 +860,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 
-    // back
+    //  Fence - Back
     scalingMatrix = scale(mat4(1.0f), vec3(scaling / 15) + vec3(0.1f, 0.0f, 0.0f));
     for (float i = xNeg; i < xPos; i++) {
         glBindVertexArray(itemsVAO[0]);
@@ -862,7 +871,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         glDrawElements(GL_TRIANGLES, itemsVertices[0], GL_UNSIGNED_INT, nullptr);
         i = i + 13;
     }
-    // front
+    //  Fence - Front
     for (float i = xNeg; i < xPos; i++) {
         translationMatrix = translate(mat4(1.0f), vec3(i + 5.0f, yGround + 3.6f, zPos + 10.0f));
         worldMatrix = translationMatrix * scalingMatrix;
@@ -871,7 +880,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         i = i + 13;
     }
 
-    //left
+    // Fence - Left
     scalingMatrix = scale(mat4(1.0f), vec3(scaling / 15) + vec3(0.0f, 0.0f, 0.2f));
     for (float i = zNeg; i < zPos; i++) {
         translationMatrix = translate(mat4(1.0f), vec3(xNeg - 7.0f, yGround + 3.6f, i + 5.0f));
@@ -881,7 +890,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         i = i + 13;
     }
 
-    //Right
+    // Fence - Right
     for (float i = zNeg; i < zPos; i++) {
         translationMatrix = translate(mat4(1.0f), vec3(xPos + 7.0f, yGround + 3.6f, i + 5.0f));
         worldMatrix = translationMatrix * scalingMatrix * rotatingLeftMatrix;
@@ -890,7 +899,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         i = i + 13;
     }
 
-    // Chair on left in court
+    // Referee Chair
     glBindVertexArray(itemsVAO[6]);
     glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
     translationMatrix = translate(mat4(1.0f), vec3(xPos + 3.0f, yGround, 0.0f));
@@ -899,6 +908,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawElements(GL_TRIANGLES_ADJACENCY_EXT, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
 
+    // Referee figure
     glBindVertexArray(itemsVAO[2]);
     glBindTexture(GL_TEXTURE_2D, worldTextures[8]);
     translationMatrix = translate(mat4(1.0f), vec3(xPos + 0.8f, yGround + 5.0f, 0.0f));
@@ -912,6 +922,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         for (float i = zNeg; i < zPos; i++) {
             float x = xNeg - 10 - pushback;
 
+            // Spectators chairs - Left
             glBindVertexArray(itemsVAO[1]);
             glBindTexture(GL_TEXTURE_2D, worldTextures[3]);
             translationMatrix = translate(mat4(1.0f), vec3(x - 1.5f, yGround - 0.3f, i));
@@ -920,6 +931,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
 
+            // Spectators on chairs
             glBindVertexArray(itemsVAO[2]);
             glBindTexture(GL_TEXTURE_2D, worldTextures[8]);
             translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.5f, i - 1.8f));
@@ -936,6 +948,8 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
             i = i + 15 + count * 2.5;
         }
     }
+
+    // Standing spectators - Right
     for (float i = zNeg; i < zPos; i++) {
         glBindVertexArray(itemsVAO[3]);
         translationMatrix = translate(mat4(1.0f), vec3(xPos + 12.0f, yGround - 0.3f, i));
@@ -974,7 +988,7 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
 }
 
 /**
- * Draw a frame
+ * Renders a frame
  */
 void drawFrame(GLuint shaderProgram) {
     // Draw textured geometry
@@ -1407,9 +1421,6 @@ void initialize() {
         glfwTerminate();
         exit(-1);
     }
-
-    // Enable Backface culling for performance
-    //    glEnable(GL_CULL_FACE);
 
     // Enable Depth test for z-culling
     glEnable(GL_DEPTH_TEST);
