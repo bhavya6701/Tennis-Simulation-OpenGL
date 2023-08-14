@@ -238,9 +238,9 @@ void SetUniformVec3(GLuint shader_id, const char *uniform_name, vec3 uniform_val
 }
 
 GLuint setupModelVBO(string path, int &vertexCount) {
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> UVs;
+    vector<vec3> vertices;
+    vector<vec3> normals;
+    vector<vec2> UVs;
 
     //read the vertex data from the model's OBJ file
     loadOBJ(path.c_str(), vertices, normals, UVs);
@@ -254,7 +254,7 @@ GLuint setupModelVBO(string path, int &vertexCount) {
     GLuint vertices_VBO;
     glGenBuffers(1, &vertices_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, vertices_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices.front(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec3), &vertices.front(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) nullptr);
     glEnableVertexAttribArray(0);
 
@@ -262,7 +262,7 @@ GLuint setupModelVBO(string path, int &vertexCount) {
     GLuint uvs_VBO;
     glGenBuffers(1, &uvs_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, uvs_VBO);
-    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2), &UVs.front(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(vec2), &UVs.front(), GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid *) nullptr);
     glEnableVertexAttribArray(1);
 
@@ -270,7 +270,7 @@ GLuint setupModelVBO(string path, int &vertexCount) {
     GLuint normals_VBO;
     glGenBuffers(1, &normals_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, normals_VBO);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals.front(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(vec3), &normals.front(), GL_STATIC_DRAW);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) nullptr);
     glEnableVertexAttribArray(2);
 
@@ -283,9 +283,9 @@ GLuint setupModelVBO(string path, int &vertexCount) {
 GLuint setupModelEBO(string path, int &vertexCount) {
     vector<int> vertexIndices;
     //The contiguous sets of three indices of vertices, normals and UVs, used to make a triangle
-    vector<glm::vec3> vertices;
-    vector<glm::vec3> normals;
-    vector<glm::vec2> UVs;
+    vector<vec3> vertices;
+    vector<vec3> normals;
+    vector<vec2> UVs;
 
     //read the vertices from the cube.obj file
     //We won't be needing the normals or UVs for this program
@@ -300,7 +300,7 @@ GLuint setupModelEBO(string path, int &vertexCount) {
     GLuint vertices_VBO;
     glGenBuffers(1, &vertices_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, vertices_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices.front(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec3), &vertices.front(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) nullptr);
     glEnableVertexAttribArray(0);
 
@@ -308,7 +308,7 @@ GLuint setupModelEBO(string path, int &vertexCount) {
     GLuint uvs_VBO;
     glGenBuffers(1, &uvs_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, uvs_VBO);
-    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2), &UVs.front(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(vec2), &UVs.front(), GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid *) nullptr);
     glEnableVertexAttribArray(1);
 
@@ -316,7 +316,7 @@ GLuint setupModelEBO(string path, int &vertexCount) {
     GLuint normals_VBO;
     glGenBuffers(1, &normals_VBO);
     glBindBuffer(GL_ARRAY_BUFFER, normals_VBO);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals.front(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(vec3), &normals.front(), GL_STATIC_DRAW);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) nullptr);
     glEnableVertexAttribArray(2);
 
@@ -1157,7 +1157,11 @@ void drawFrame(GLuint shaderProgram) {
     // End Frame
 }
 
+/**
+ * Reset the ball position according to the player's turn
+ */
 void resetBall(int player) {
+    bounce = 0, lastBounceRacket = 0;
     if (player == 1) {
         ballPosition = vec3(5.0f, 20.0f, 35.0f);
         ballScaling = vec3(0.25f, 0.25f, 0.25f);
@@ -1169,6 +1173,9 @@ void resetBall(int player) {
     }
 }
 
+/**
+ * Update the ball position
+ */
 void updateBallPosition() {
     // Racket Position
     racket1Position = racketNetTransformation[0][3];
@@ -1192,7 +1199,7 @@ void updateBallPosition() {
     // Check ball bounce on the racket 1
     if (intersectsRacket(racket1Position, racket1Normal, racketNetScaling.x, racketNetScaling.y)) {
         // Reflect the ball's velocity off racket1
-        ballVelocity = ballVelocity - 2.0f * dot(ballVelocity, racket1Normal) * racket1Normal;
+        ballVelocity = ballVelocity - 3.0f * dot(ballVelocity, racket1Normal) * racket1Normal;
         bounce = 0;
         lastBounceRacket = 1;
     }
@@ -1200,7 +1207,7 @@ void updateBallPosition() {
     // Check ball bounce on the racket 2
     if (intersectsRacket(racket2Position, racket2Normal, racketNetScaling.x, racketNetScaling.y)) {
         // Reflect the ball's velocity off racket2
-        ballVelocity = ballVelocity - 2.0f * dot(ballVelocity, racket2Normal) * racket2Normal;
+        ballVelocity = ballVelocity - 3.0f * dot(ballVelocity, racket2Normal) * racket2Normal;
         bounce = 0;
         lastBounceRacket = 2;
     }
@@ -1216,26 +1223,57 @@ void updateBallPosition() {
     ballRotationAngle += dt * ballAngularVelocity;
 }
 
+/**
+ * Check for the score updates
+ */
 void checkScore() {
-    if (ballPosition.x > 25.0f || ballPosition.x < -25.0f || ballPosition.z > 54.17f || ballPosition.z < -54.17f) {
-        if (bounce == 0) {
+    if (bounce == 0) { // Check if ball is out of bounds
+        if (ballPosition.x > 25.0f || ballPosition.x < -25.0f || ballPosition.z > 54.17f || ballPosition.z < -54.17f) {
             if (lastBounceRacket == 1) {
-                p2Score++;
+                p2Score = (p2Score + 1) % 5;
                 nextServe = 2;
             } else if (lastBounceRacket == 2) {
-                p1Score++;
+                p1Score = (p1Score + 1) % 5;
                 nextServe = 1;
             }
-        } else if (bounce >= 1) {
-            if (lastBounceRacket == 1) {
-                p1Score++;
-                nextServe = 1;
-            } else if (lastBounceRacket == 2) {
-                p2Score++;
+            resetBall(nextServe);
+        }
+    } else if (bounce == 1) { // Check if ball is on the same side of the last bounce & out of bounds on the other side
+        if (lastBounceRacket == 1) {
+            if (ballPosition.z > 0.0f) {
+                p2Score = (p2Score + 1) % 5;
                 nextServe = 2;
+                resetBall(nextServe);
+            } else if (ballPosition.z < 0.0f && (ballPosition.x > 25.0f || ballPosition.x < -25.0f)) {
+                p1Score = (p1Score + 1) % 5;
+                nextServe = 1;
+                resetBall(nextServe);
+            }
+        } else if (lastBounceRacket == 2) {
+            if (ballPosition.z < 0.0f) {
+                p1Score = (p1Score + 1) % 5;
+                nextServe = 1;
+                resetBall(nextServe);
+            } else if (ballPosition.z > 0.0f && (ballPosition.x > 25.0f || ballPosition.x < -25.0f)) {
+                p2Score = (p2Score + 1) % 5;
+                nextServe = 2;
+                resetBall(nextServe);
             }
         }
-        resetBall(nextServe);
+    } else { // Check if ball has bounced multiple times on the other side of the net
+        if (lastBounceRacket == 1) {
+            if (ballPosition.z < 0) {
+                p1Score = (p1Score + 1) % 5;
+                nextServe = 1;
+                resetBall(nextServe);
+            }
+        } else if (lastBounceRacket == 2) {
+            if (ballPosition.z > 0) {
+                p2Score = (p2Score + 1) % 5;
+                nextServe = 2;
+                resetBall(nextServe);
+            }
+        }
     }
 }
 
