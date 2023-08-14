@@ -2,7 +2,7 @@
  * COMP371: Computer Graphics |
  * Final Project |
  * Name: Bhavya Ruparelia | Devansh Vaidya | Jananee Aruboribaran |
- * Student ID: 40164863 | 40165987 |  |
+ * Student ID: 40164863 | 40165987 | 40129224 |
  */
 
 #include <iostream>
@@ -38,135 +38,143 @@ GLuint depthShaderProgram, colorShaderProgram;
 int frameBufferWidth, frameBufferHeight;
 int DEPTH_MAP_TEXTURE_SIZE = 1024;
 
-// Textures
+// Frame buffer object for shadow mapping
+GLuint depthMapFBO;
+
+// Textures for court objects
 GLuint tennisCourtGrassTextureID, tennisCourtLineTextureID, blueBoxTextureID, skin1TextureID, skin2TextureID,
         skin3TextureID, skin4TextureID, racketHandleTextureID, racketSideTextureID, racketNetTextureID, ballTextureID,
         whiteTextureID, silverPoleTextureID, tennisNetTextureID;
 GLuint playerTitleTextureID[2];
 
-// Frame buffer object for shadow mapping
-GLuint depthMapFbo;
+// Ground point
+vec3 groundPoint(0.0f, -1.0f, 0.0f);
 
-// Vertex array objects for textured cube and sphere
+// Vertices counts and VAO for textured cube and sphere
+int cubeVerticesCount, sphereVerticesCount;
 GLuint cubeVAO, sphereVAO;
 
-int cubeVerticesCount, sphereVerticesCount;
+// Vertices count and VAO for world
+int itemsVertices[7];
+GLuint itemsVAO[7];
+GLuint worldTextures[9], scoreBoardTextures[10];
 
 // Matrix declarations
-mat4 worldMatrix, viewMatrix, projectionMatrix, rotationMatrix, translationMatrix, scalingMatrix, modelHierarchicalMatrix,
-        groundTennisHierarchicalMatrix;
+mat4 worldMatrix, viewMatrix, projectionMatrix, rotationMatrix, translationMatrix, scalingMatrix,
+        modelHierarchicalMatrix, groundTennisHierarchicalMatrix;
 
 // Tilting parameters for camera
-float dt = 0.0f;
-float cameraVerticalAngle = 0.0f;
+float dt = 0.0f, cameraVerticalAngle = 0.0f;
+
+// Camera constants
+vec3 cameraUp(0.0f, 1.0f, 0.0f),
+        cameraSideVector = vec3(1.0f, 1.0f, 1.0f);
+float cameraRotationSpeed = 50.0f;
+
+// Camera parameters for view transform
+vec3 cameraPosition[] = {vec3(0.0f, 20.0f, 70.0f),
+                         vec3(-5.0f, 2.25f, -20.0f),
+                         vec3(-5.0f, 2.25f, 20.0f),
+                         vec3(0.0f, 7.5f, 60.0f)},
+        cameraLookAt = cameraPosition[0];
+int cameraIndex = 0;
+float cameraRotationAngle = 0.0f,
+        cameraRadius = length(cameraPosition[0]),
+        cameraTheta = atan(cameraPosition[0].z, cameraPosition[0].x),
+        cameraPhi = asin(cameraPosition[0].y / cameraRadius),
+        cameraPosX, cameraPosY, cameraPosZ;
 
 // Mouse parameters
 bool isLeftMBClicked = false, isRightMBClicked = false, isMiddleMBClicked = false;
 double lastMousePosX = 0.0f, lastMousePosY = 0.0f;
-
-// Camera parameters for view transform
-vec3 cameraSideVector = vec3(1.0f, 1.0f, 1.0f);
-vec3 cameraPosition[] = {vec3(0.0f, 20.0f, 70.0f),
-                         vec3(-5.0f, 2.25f, -20.0f),
-                         vec3(-5.0f, 2.25f, 20.0f),
-                         vec3(0.0f, 7.5f, 60.0f)};
-vec3 cameraLookAt = cameraPosition[0];
-vec3 cameraUp(0.0f, 1.0f, 0.0f);
-int cameraIndex = 0;
-float cameraRotationSpeed = 50.0f;
-float cameraRotationAngle = 0.0f;
-float cameraRadius = length(cameraPosition[0]);
-float cameraTheta = atan(cameraPosition[0].z, cameraPosition[0].x);
-float cameraPhi = asin(cameraPosition[0].y / cameraRadius);
-float cameraPosX, cameraPosY, cameraPosZ;
 
 float lastBtnClick = 0.0f;
 
 // Time frame parameter
 float lastFrameTime = (float) glfwGetTime();
 
+// Model constants
+float rotateByAngle = 5.0f, otherRotateByAngle = 0.5f;
+mat4 defaultArmRotationMatrix[] = {
+        rotate(mat4(1.0f), radians(-60.0f), vec3(0.0f, 0.0f, 1.0f)),
+        rotate(mat4(1.0f), radians(60.0f), vec3(0.0f, 0.0f, 1.0f))
+},
+        defaultArmTranslationMatrix[] = {
+        translate(mat4(1.0f), vec3(0.5f, 3.3f, 0.42f)),
+        translate(mat4(1.0f), vec3(0.0f, 1.0f, 0.0f))
+};
+
 // Model parameters for model transform
 vec3 modelPosition[] = {vec3(0.0f, 0.25f, 40.0f),
                         vec3(-5.0f, 0.25f, -40.0f)};
+
 float yRotationAngle[] = {0.0f, 0.0f};
-float rotateByAngle = 5.0f, otherRotateByAngle = 0.5f;
 mat4 yRotationMatrix[] = {rotate(mat4(1.0f), yRotationAngle[0], vec3(0.0f, 1.0f, 0.0f)),
                           rotate(mat4(1.0f), yRotationAngle[1], vec3(0.0f, 1.0f, 0.0f))};
+
 float armXRotationAngle[2][3] = {{0.0f, 0.0f, 0.0f},
-                                 {0.0f, 0.0f, 0.0f}};
-float armYRotationAngle[2][3] = {{0.0f, 0.0f, 0.0f},
-                                 {0.0f, 0.0f, 0.0f}};
-float armZRotationAngle[2][3] = {0.0f, 0.0f, 0.0f};
+                                 {0.0f, 0.0f, 0.0f}},
+        armYRotationAngle[2][3] = {{0.0f, 0.0f, 0.0f},
+                                   {0.0f, 0.0f, 0.0f}},
+        armZRotationAngle[2][3] = {{0.0f, 0.0f, 0.0f},
+                                   {0.0f, 0.0f, 0.0f}};
 mat4 armXRotationMatrix[2][3] = {{rotate(mat4(1.0f), armXRotationAngle[0][0], vec3(1.0f, 0.0f, 0.0f)),
                                          rotate(mat4(1.0f), armXRotationAngle[0][1], vec3(1.0f, 0.0f, 0.0f)),
                                          rotate(mat4(1.0f), armXRotationAngle[0][2], vec3(1.0f, 0.0f, 0.0f))},
                                  {rotate(mat4(1.0f), armXRotationAngle[1][0], vec3(1.0f, 0.0f, 0.0f)),
                                          rotate(mat4(1.0f), armXRotationAngle[1][1], vec3(1.0f, 0.0f, 0.0f)),
-                                         rotate(mat4(1.0f), armXRotationAngle[1][2], vec3(1.0f, 0.0f, 0.0f))}};
-mat4 armYRotationMatrix[2][3] = {{rotate(mat4(1.0f), armYRotationAngle[0][0], vec3(0.0f, 1.0f, 0.0f)),
-                                         rotate(mat4(1.0f), armYRotationAngle[0][1], vec3(0.0f, 1.0f, 0.0f)),
-                                         rotate(mat4(1.0f), armYRotationAngle[0][2], vec3(0.0f, 1.0f, 0.0f))},
-                                 {rotate(mat4(1.0f), armYRotationAngle[1][0], vec3(0.0f, 1.0f, 0.0f)),
-                                         rotate(mat4(1.0f), armYRotationAngle[1][1], vec3(0.0f, 1.0f, 0.0f)),
-                                         rotate(mat4(1.0f), armYRotationAngle[1][2], vec3(0.0f, 1.0f, 0.0f))}};
-mat4 armZRotationMatrix[2][3] = {{rotate(mat4(1.0f), armZRotationAngle[0][0], vec3(0.0f, 0.0f, 1.0f)),
-                                         rotate(mat4(1.0f), armZRotationAngle[0][1], vec3(0.0f, 0.0f, 1.0f)),
-                                         rotate(mat4(1.0f), armZRotationAngle[0][2], vec3(0.0f, 0.0f, 1.0f))},
-                                 {rotate(mat4(1.0f), armZRotationAngle[1][0], vec3(0.0f, 0.0f, 1.0f)),
-                                         rotate(mat4(1.0f), armZRotationAngle[1][1], vec3(0.0f, 0.0f, 1.0f)),
-                                         rotate(mat4(1.0f), armZRotationAngle[1][2], vec3(0.0f, 0.0f, 1.0f))}};
-mat4 armRotationMatrix[2][3] = {{armXRotationMatrix[0][0] * armYRotationMatrix[0][0] * armZRotationMatrix[0][0],
-                                        armXRotationMatrix[0][1] * armYRotationMatrix[0][1] * armZRotationMatrix[0][1],
-                                        armXRotationMatrix[0][2] * armYRotationMatrix[0][2] * armZRotationMatrix[0][2]},
-                                {armXRotationMatrix[1][0] * armYRotationMatrix[1][0] * armZRotationMatrix[1][0],
-                                        armXRotationMatrix[1][1] * armYRotationMatrix[1][1] * armZRotationMatrix[1][1],
-                                        armXRotationMatrix[1][2] * armYRotationMatrix[1][2] *
-                                        armZRotationMatrix[1][2]}};
-mat4 defaultArmRotationMatrix[] = {
-        rotate(mat4(1.0f), radians(-60.0f), vec3(0.0f, 0.0f, 1.0f)),
-        rotate(mat4(1.0f), radians(60.0f), vec3(0.0f, 0.0f, 1.0f))
-};
-mat4 defaultArmTranslationMatrix[] = {
-        translate(mat4(1.0f), vec3(0.5f, 3.3f, 0.42f)),
-        translate(mat4(1.0f), vec3(0.0f, 1.0f, 0.0f))
-};
-int selectedFigure = 0;
-int selectedModel = 0;
+                                         rotate(mat4(1.0f), armXRotationAngle[1][2], vec3(1.0f, 0.0f, 0.0f))}},
+        armYRotationMatrix[2][3] = {{rotate(mat4(1.0f), armYRotationAngle[0][0], vec3(0.0f, 1.0f, 0.0f)),
+                                            rotate(mat4(1.0f), armYRotationAngle[0][1], vec3(0.0f, 1.0f, 0.0f)),
+                                            rotate(mat4(1.0f), armYRotationAngle[0][2], vec3(0.0f, 1.0f, 0.0f))},
+                                    {rotate(mat4(1.0f), armYRotationAngle[1][0], vec3(0.0f, 1.0f, 0.0f)),
+                                            rotate(mat4(1.0f), armYRotationAngle[1][1], vec3(0.0f, 1.0f, 0.0f)),
+                                            rotate(mat4(1.0f), armYRotationAngle[1][2], vec3(0.0f, 1.0f, 0.0f))}},
+        armZRotationMatrix[2][3] = {{rotate(mat4(1.0f), armZRotationAngle[0][0], vec3(0.0f, 0.0f, 1.0f)),
+                                            rotate(mat4(1.0f), armZRotationAngle[0][1], vec3(0.0f, 0.0f, 1.0f)),
+                                            rotate(mat4(1.0f), armZRotationAngle[0][2], vec3(0.0f, 0.0f, 1.0f))},
+                                    {rotate(mat4(1.0f), armZRotationAngle[1][0], vec3(0.0f, 0.0f, 1.0f)),
+                                            rotate(mat4(1.0f), armZRotationAngle[1][1], vec3(0.0f, 0.0f, 1.0f)),
+                                            rotate(mat4(1.0f), armZRotationAngle[1][2], vec3(0.0f, 0.0f, 1.0f))}},
+        armRotationMatrix[2][3] = {{armXRotationMatrix[0][0] * armYRotationMatrix[0][0] * armZRotationMatrix[0][0],
+                                           armXRotationMatrix[0][1] * armYRotationMatrix[0][1] *
+                                           armZRotationMatrix[0][1],
+                                           armXRotationMatrix[0][2] * armYRotationMatrix[0][2] *
+                                           armZRotationMatrix[0][2]},
+                                   {armXRotationMatrix[1][0] * armYRotationMatrix[1][0] * armZRotationMatrix[1][0],
+                                           armXRotationMatrix[1][1] * armYRotationMatrix[1][1] *
+                                           armZRotationMatrix[1][1],
+                                           armXRotationMatrix[1][2] * armYRotationMatrix[1][2] *
+                                           armZRotationMatrix[1][2]}};
+int selectedFigure = 0, selectedModel = 0;
 
-// Ball bounce parameters
-vec3 ballPosition(5.0f, 20.0f, 35.0f);
-vec3 ballScaling(0.25f, 0.25f, 0.25f);
-vec3 ballVelocity(0.0f, 0.0f, 0.0f);
+// Ball and Racket Constants for collision
+vec3 ballScaling(0.25f, 0.25f, 0.25f),
+        ballVelocity(0.0f, 0.0f, 0.0f),
+        tennisScaling(48.0f, 4.14f, 0.5f),
+        groundNormal(0.0f, 1.0f, 0.0f),
+        racketNetScaling(1.33f, 1.66f, 0.16f);
 float ballRadius = ballScaling.x;
 const float GRAVITY = 9.807f, DAMPING = 1.0f;
-vec3 groundPoint(0.0f, -1.0f, 0.0f);
-vec3 groundNormal(0.0f, 1.0f, 0.0f);
-vec3 tennisNetPosition(0.0f, 2.12f, 0.0f);
-vec3 tennisNetNormal(0.0f, 0.0f, 1.0f);
-vec3 tennisScaling(48.0f, 4.14f, 0.5f);
-vec3 racket1Position, racket2Position, racket1Normal, racket2Normal;
-vec3 racketNetScaling(1.33f, 1.66f, 0.16f);
-vec3 ballRotationAxis(0.0f, 1.0f, 0.0f);
-float ballRotationAngle = 0.0f;
-vec3 ballAngularAxis(0.0f, 1.0f, 0.0f);
-float ballAngularVelocity = 0.0f;
+
+// Ball bounce parameters
+vec3 ballPosition(5.0f, 20.0f, 35.0f),
+        ballRotationAxis(0.0f, 1.0f, 0.0f),
+        ballAngularAxis(0.0f, 1.0f, 0.0f),
+        tennisNetPosition(0.0f, 2.12f, 0.0f),
+        tennisNetNormal(0.0f, 0.0f, 1.0f),
+        racket1Position, racket2Position, racket1Normal, racket2Normal;
+float ballRotationAngle = 0.0f, ballAngularVelocity = 0.0f;
 mat4 racketNetTransformation[] = {rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f)),
                                   rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f))};
-int nextServe = 1;
-int bounce = 0;
-int lastBounceRacket = 0;
-int p1Score = 0, p2Score = 0;
+
+// Required for score calculation
+int nextServe = 1, bounce = 0, lastBounceRacket = 0, p1Score = 0, p2Score = 0;
 
 // Light parameters
 vec3 lightPosition;
 mat4 lightProjectionMatrix;
-bool isSpotLightOn = false;
-bool isShadowOn = false;
-
-//VAO for world
-int itemsVertices[7];
-GLuint itemsVAO[7];
-GLuint worldTextures[9], scoreBoardTextures[10];
+bool isSpotLightOn = false, isShadowOn = false;
 
 // Check if the ball touches the ground
 bool intersectsGround(vec3 planePoint, vec3 planeNormal) {
@@ -1435,8 +1443,8 @@ void initialize() {
  * Initialize the frame buffer for the shadow map
  */
 void initializeFrameBuffer() {
-    glGenFramebuffers(1, &depthMapFbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFbo);
+    glGenFramebuffers(1, &depthMapFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 
     GLuint depthTexture;
     glGenTextures(1, &depthTexture);
@@ -1617,7 +1625,7 @@ int main(int argc, char *argv[]) {
         // First pass
         glUseProgram(depthShaderProgram);
         glViewport(0, 0, DEPTH_MAP_TEXTURE_SIZE, DEPTH_MAP_TEXTURE_SIZE);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         drawFrame(depthShaderProgram);
         SetUniformMat4(depthShaderProgram, "lightSpaceMatrix", lightSpaceMatrix);
@@ -1634,7 +1642,7 @@ int main(int argc, char *argv[]) {
         SetUniformMat4(colorShaderProgram, "projectionMatrix", projectionMatrix);
         SetUniformMat4(colorShaderProgram, "lightSpaceMatrix", lightSpaceMatrix);
 
-        glBindTexture(GL_TEXTURE_2D, depthMapFbo);
+        glBindTexture(GL_TEXTURE_2D, depthMapFBO);
 
         // Draw scene
         drawFrame(colorShaderProgram);
