@@ -92,21 +92,36 @@ float yRotationAngle[] = {0.0f, 0.0f};
 float rotateByAngle = 5.0f, otherRotateByAngle = 0.5f;
 mat4 yRotationMatrix[] = {rotate(mat4(1.0f), yRotationAngle[0], vec3(0.0f, 1.0f, 0.0f)),
                           rotate(mat4(1.0f), yRotationAngle[1], vec3(0.0f, 1.0f, 0.0f))};
-float armXRotationAngle[] = {0.0f, 0.0f, 0.0f};
-float armYRotationAngle[] = {0.0f, 0.0f, 0.0f};
-float armZRotationAngle[] = {0.0f, 0.0f, 0.0f};
-mat4 armXRotationMatrix[] = {rotate(mat4(1.0f), armXRotationAngle[0], vec3(1.0f, 0.0f, 0.0f)),
-                             rotate(mat4(1.0f), armXRotationAngle[1], vec3(1.0f, 0.0f, 0.0f)),
-                             rotate(mat4(1.0f), armXRotationAngle[2], vec3(1.0f, 0.0f, 0.0f))};
-mat4 armYRotationMatrix[] = {rotate(mat4(1.0f), armYRotationAngle[0], vec3(0.0f, 1.0f, 0.0f)),
-                             rotate(mat4(1.0f), armYRotationAngle[1], vec3(0.0f, 1.0f, 0.0f)),
-                             rotate(mat4(1.0f), armYRotationAngle[2], vec3(0.0f, 1.0f, 0.0f))};
-mat4 armZRotationMatrix[] = {rotate(mat4(1.0f), armZRotationAngle[0], vec3(0.0f, 0.0f, 1.0f)),
-                             rotate(mat4(1.0f), armZRotationAngle[1], vec3(0.0f, 0.0f, 1.0f)),
-                             rotate(mat4(1.0f), armZRotationAngle[2], vec3(0.0f, 0.0f, 1.0f))};
-mat4 armRotationMatrix[] = {armXRotationMatrix[0] * armYRotationMatrix[0] * armZRotationMatrix[0],
-                            armXRotationMatrix[1] * armYRotationMatrix[1] * armZRotationMatrix[1],
-                            armXRotationMatrix[2] * armYRotationMatrix[2] * armZRotationMatrix[2]};
+float armXRotationAngle[2][3] = {{0.0f, 0.0f, 0.0f},
+                                 {0.0f, 0.0f, 0.0f}};
+float armYRotationAngle[2][3] = {{0.0f, 0.0f, 0.0f},
+                                 {0.0f, 0.0f, 0.0f}};
+float armZRotationAngle[2][3] = {0.0f, 0.0f, 0.0f};
+mat4 armXRotationMatrix[2][3] = {{rotate(mat4(1.0f), armXRotationAngle[0][0], vec3(1.0f, 0.0f, 0.0f)),
+                                         rotate(mat4(1.0f), armXRotationAngle[0][1], vec3(1.0f, 0.0f, 0.0f)),
+                                         rotate(mat4(1.0f), armXRotationAngle[0][2], vec3(1.0f, 0.0f, 0.0f))},
+                                 {rotate(mat4(1.0f), armXRotationAngle[1][0], vec3(1.0f, 0.0f, 0.0f)),
+                                         rotate(mat4(1.0f), armXRotationAngle[1][1], vec3(1.0f, 0.0f, 0.0f)),
+                                         rotate(mat4(1.0f), armXRotationAngle[1][2], vec3(1.0f, 0.0f, 0.0f))}};
+mat4 armYRotationMatrix[2][3] = {{rotate(mat4(1.0f), armYRotationAngle[0][0], vec3(0.0f, 1.0f, 0.0f)),
+                                         rotate(mat4(1.0f), armYRotationAngle[0][1], vec3(0.0f, 1.0f, 0.0f)),
+                                         rotate(mat4(1.0f), armYRotationAngle[0][2], vec3(0.0f, 1.0f, 0.0f))},
+                                 {rotate(mat4(1.0f), armYRotationAngle[1][0], vec3(0.0f, 1.0f, 0.0f)),
+                                         rotate(mat4(1.0f), armYRotationAngle[1][1], vec3(0.0f, 1.0f, 0.0f)),
+                                         rotate(mat4(1.0f), armYRotationAngle[1][2], vec3(0.0f, 1.0f, 0.0f))}};
+mat4 armZRotationMatrix[2][3] = {{rotate(mat4(1.0f), armZRotationAngle[0][0], vec3(0.0f, 0.0f, 1.0f)),
+                                         rotate(mat4(1.0f), armZRotationAngle[0][1], vec3(0.0f, 0.0f, 1.0f)),
+                                         rotate(mat4(1.0f), armZRotationAngle[0][2], vec3(0.0f, 0.0f, 1.0f))},
+                                 {rotate(mat4(1.0f), armZRotationAngle[1][0], vec3(0.0f, 0.0f, 1.0f)),
+                                         rotate(mat4(1.0f), armZRotationAngle[1][1], vec3(0.0f, 0.0f, 1.0f)),
+                                         rotate(mat4(1.0f), armZRotationAngle[1][2], vec3(0.0f, 0.0f, 1.0f))}};
+mat4 armRotationMatrix[2][3] = {{armXRotationMatrix[0][0] * armYRotationMatrix[0][0] * armZRotationMatrix[0][0],
+                                        armXRotationMatrix[0][1] * armYRotationMatrix[0][1] * armZRotationMatrix[0][1],
+                                        armXRotationMatrix[0][2] * armYRotationMatrix[0][2] * armZRotationMatrix[0][2]},
+                                {armXRotationMatrix[1][0] * armYRotationMatrix[1][0] * armZRotationMatrix[1][0],
+                                        armXRotationMatrix[1][1] * armYRotationMatrix[1][1] * armZRotationMatrix[1][1],
+                                        armXRotationMatrix[1][2] * armYRotationMatrix[1][2] *
+                                        armZRotationMatrix[1][2]}};
 mat4 defaultArmRotationMatrix[] = {
         rotate(mat4(1.0f), radians(-60.0f), vec3(0.0f, 0.0f, 1.0f)),
         rotate(mat4(1.0f), radians(60.0f), vec3(0.0f, 0.0f, 1.0f))
@@ -341,9 +356,12 @@ void resetHome() {
     cameraIndex = 0;
     modelPosition[0] = vec3(0.0f, 0.25f, 40.0f), modelPosition[1] = vec3(-5.0f, 0.25f, -40.0f);
     yRotationAngle[0] /= -2, yRotationAngle[1] /= -2;
-    armXRotationAngle[0] /= -2, armYRotationAngle[0] /= -2, armZRotationAngle[0] /= -2;
-    armXRotationAngle[1] /= -2, armYRotationAngle[1] /= -2, armZRotationAngle[1] /= -2;
-    armXRotationAngle[2] /= -2, armYRotationAngle[2] /= -2, armZRotationAngle[2] /= -2;
+    armXRotationAngle[0][0] /= -2, armYRotationAngle[0][0] /= -2, armZRotationAngle[0][0] /= -2;
+    armXRotationAngle[0][1] /= -2, armYRotationAngle[0][1] /= -2, armZRotationAngle[0][1] /= -2;
+    armXRotationAngle[0][2] /= -2, armYRotationAngle[0][2] /= -2, armZRotationAngle[0][2] /= -2;
+    armXRotationAngle[1][0] /= -2, armYRotationAngle[1][0] /= -2, armZRotationAngle[1][0] /= -2;
+    armXRotationAngle[1][1] /= -2, armYRotationAngle[1][1] /= -2, armZRotationAngle[1][1] /= -2;
+    armXRotationAngle[1][2] /= -2, armYRotationAngle[1][2] /= -2, armZRotationAngle[1][2] /= -2;
 }
 
 /**
@@ -538,32 +556,32 @@ void handleInputs() {
 
     // Rotate arm in x-axis
     if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS) {
-        armXRotationAngle[selectedFigure] -= radians(otherRotateByAngle);
+        armXRotationAngle[selectedModel][selectedFigure] -= radians(otherRotateByAngle);
     }
 
     // Rotate arm in x-axis
     if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS) {
-        armXRotationAngle[selectedFigure] += radians(otherRotateByAngle);
+        armXRotationAngle[selectedModel][selectedFigure] += radians(otherRotateByAngle);
     }
 
     // Rotate arm in y-axis
     if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
-        armYRotationAngle[selectedFigure] -= radians(otherRotateByAngle);
+        armYRotationAngle[selectedModel][selectedFigure] -= radians(otherRotateByAngle);
     }
 
     // Rotate arm in y-axis
     if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS) {
-        armYRotationAngle[selectedFigure] += radians(otherRotateByAngle);
+        armYRotationAngle[selectedModel][selectedFigure] += radians(otherRotateByAngle);
     }
 
     // Rotate arm in z-axis
     if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
-        armZRotationAngle[selectedFigure] -= radians(otherRotateByAngle);
+        armZRotationAngle[selectedModel][selectedFigure] -= radians(otherRotateByAngle);
     }
 
     // Rotate arm in z-axis
     if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS) {
-        armZRotationAngle[selectedFigure] += radians(otherRotateByAngle);
+        armZRotationAngle[selectedModel][selectedFigure] += radians(otherRotateByAngle);
     }
 
     // Reset camera position
@@ -892,12 +910,12 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
             scalingMatrix = scale(mat4(1.0f), vec3(scaling / 10.0f));
             worldMatrix = translationMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, nullptr);
 
             translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.7f, i + 2.3));
             worldMatrix = translationMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, nullptr);
 
             i = i + 15 + count * 2.5;
         }
@@ -970,7 +988,8 @@ void drawFrame(GLuint shaderProgram) {
         glBindTexture(GL_TEXTURE_2D, skin1TextureID);
         translationMatrix = translate(mat4(1.0f), modelPosition[i]);
         scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 3.3f, 0.42f));
-        rotationMatrix = defaultArmRotationMatrix[0] * armRotationMatrix[0] * defaultArmTranslationMatrix[0];
+        rotationMatrix =
+                defaultArmRotationMatrix[0] * armRotationMatrix[i][0] * defaultArmTranslationMatrix[0];
         modelHierarchicalMatrix = yRotationMatrix[i] * translationMatrix *
                                   rotationMatrix;
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
@@ -980,7 +999,8 @@ void drawFrame(GLuint shaderProgram) {
         // Cube 2 (Arm top)
         glBindTexture(GL_TEXTURE_2D, skin2TextureID);
         translationMatrix = translate(mat4(1.0f), vec3(.0f, 1.5f, 0.0f));
-        rotationMatrix = defaultArmRotationMatrix[1] * armRotationMatrix[1] * defaultArmTranslationMatrix[1];
+        rotationMatrix =
+                defaultArmRotationMatrix[1] * armRotationMatrix[i][1] * defaultArmTranslationMatrix[1];
         scalingMatrix = scale(mat4(1.0f), vec3(0.25f, 1.66f, 0.25f));
         modelHierarchicalMatrix = modelHierarchicalMatrix * translationMatrix * rotationMatrix;
         worldMatrix = modelHierarchicalMatrix * scalingMatrix;
@@ -1305,17 +1325,29 @@ void processUpdates() {
     yRotationMatrix[selectedModel] = rotate(mat4(1.0f), yRotationAngle[selectedModel], vec3(0.0f, 1.0f, 0.0f));
 
     // Update matrix with angle of rotation of the arm
-    armXRotationMatrix[0] = rotate(mat4(1.0f), armXRotationAngle[0], vec3(1.0f, 0.0f, 0.0f));
-    armXRotationMatrix[1] = rotate(mat4(1.0f), armXRotationAngle[1], vec3(1.0f, 0.0f, 0.0f));
-    armXRotationMatrix[2] = rotate(mat4(1.0f), armXRotationAngle[2], vec3(1.0f, 0.0f, 0.0f));
-    armYRotationMatrix[0] = rotate(mat4(1.0f), armYRotationAngle[0], vec3(0.0f, 1.0f, 0.0f));
-    armYRotationMatrix[1] = rotate(mat4(1.0f), armYRotationAngle[1], vec3(0.0f, 1.0f, 0.0f));
-    armYRotationMatrix[2] = rotate(mat4(1.0f), armYRotationAngle[2], vec3(0.0f, 1.0f, 0.0f));
-    armZRotationMatrix[0] = rotate(mat4(1.0f), armZRotationAngle[0], vec3(0.0f, 0.0f, 1.0f));
-    armZRotationMatrix[1] = rotate(mat4(1.0f), armZRotationAngle[1], vec3(0.0f, 0.0f, 1.0f));
-    armZRotationMatrix[2] = rotate(mat4(1.0f), armZRotationAngle[2], vec3(0.0f, 0.0f, 1.0f));
-    armRotationMatrix[0] = armXRotationMatrix[0] * armYRotationMatrix[0] * armZRotationMatrix[0];
-    armRotationMatrix[1] = armXRotationMatrix[1] * armYRotationMatrix[1] * armZRotationMatrix[1];
+    armXRotationMatrix[0][0] = rotate(mat4(1.0f), armXRotationAngle[0][0], vec3(1.0f, 0.0f, 0.0f));
+    armXRotationMatrix[0][1] = rotate(mat4(1.0f), armXRotationAngle[0][1], vec3(1.0f, 0.0f, 0.0f));
+    armXRotationMatrix[0][2] = rotate(mat4(1.0f), armXRotationAngle[0][2], vec3(1.0f, 0.0f, 0.0f));
+    armYRotationMatrix[0][0] = rotate(mat4(1.0f), armYRotationAngle[0][0], vec3(0.0f, 1.0f, 0.0f));
+    armYRotationMatrix[0][1] = rotate(mat4(1.0f), armYRotationAngle[0][1], vec3(0.0f, 1.0f, 0.0f));
+    armYRotationMatrix[0][2] = rotate(mat4(1.0f), armYRotationAngle[0][2], vec3(0.0f, 1.0f, 0.0f));
+    armZRotationMatrix[0][0] = rotate(mat4(1.0f), armZRotationAngle[0][0], vec3(0.0f, 0.0f, 1.0f));
+    armZRotationMatrix[0][1] = rotate(mat4(1.0f), armZRotationAngle[0][1], vec3(0.0f, 0.0f, 1.0f));
+    armZRotationMatrix[0][2] = rotate(mat4(1.0f), armZRotationAngle[0][2], vec3(0.0f, 0.0f, 1.0f));
+    armRotationMatrix[0][0] = armXRotationMatrix[0][0] * armYRotationMatrix[0][0] * armZRotationMatrix[0][0];
+    armRotationMatrix[0][1] = armXRotationMatrix[0][1] * armYRotationMatrix[0][1] * armZRotationMatrix[0][1];
+
+    armXRotationMatrix[1][0] = rotate(mat4(1.0f), armXRotationAngle[1][0], vec3(1.0f, 0.0f, 0.0f));
+    armXRotationMatrix[1][1] = rotate(mat4(1.0f), armXRotationAngle[1][1], vec3(1.0f, 0.0f, 0.0f));
+    armXRotationMatrix[1][2] = rotate(mat4(1.0f), armXRotationAngle[1][2], vec3(1.0f, 0.0f, 0.0f));
+    armYRotationMatrix[1][0] = rotate(mat4(1.0f), armYRotationAngle[1][0], vec3(0.0f, 1.0f, 0.0f));
+    armYRotationMatrix[1][1] = rotate(mat4(1.0f), armYRotationAngle[1][1], vec3(0.0f, 1.0f, 0.0f));
+    armYRotationMatrix[1][2] = rotate(mat4(1.0f), armYRotationAngle[1][2], vec3(0.0f, 1.0f, 0.0f));
+    armZRotationMatrix[1][0] = rotate(mat4(1.0f), armZRotationAngle[1][0], vec3(0.0f, 0.0f, 1.0f));
+    armZRotationMatrix[1][1] = rotate(mat4(1.0f), armZRotationAngle[1][1], vec3(0.0f, 0.0f, 1.0f));
+    armZRotationMatrix[1][2] = rotate(mat4(1.0f), armZRotationAngle[1][2], vec3(0.0f, 0.0f, 1.0f));
+    armRotationMatrix[1][0] = armXRotationMatrix[1][0] * armYRotationMatrix[1][0] * armZRotationMatrix[1][0];
+    armRotationMatrix[1][1] = armXRotationMatrix[1][1] * armYRotationMatrix[1][1] * armZRotationMatrix[1][1];
 
     // Update Mouse Position
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
