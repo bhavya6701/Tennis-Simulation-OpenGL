@@ -1,11 +1,6 @@
-//
-// Created by bhavya on 2023-07-27.
-//
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
 #include "GL/glew.h"
 
 using namespace std;

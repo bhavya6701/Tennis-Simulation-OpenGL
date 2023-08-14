@@ -17,9 +17,9 @@
 
 #include <glm/glm.hpp>  // GLM is an optimized math library with syntax similar to OpenGL Shading Language
 #include <glm/gtc/matrix_transform.hpp> // include this to create transformation matrices
-#include "shader.h"
+#include "shader.h" // Helper functions to load shaders from text files
 #include "OBJloader.h"  //For loading .obj files
-#include "OBJloaderV2.h"  //For loading .obj files using a polygon list format
+#include "utility.h" // Utility functions
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -75,7 +75,7 @@ float cameraRotationSpeed = 50.0f;
 vec3 cameraPosition[] = {vec3(0.0f, 20.0f, 70.0f),
                          vec3(-5.0f, 2.25f, -20.0f),
                          vec3(-5.0f, 2.25f, 20.0f),
-                         vec3(0.0f, 7.5f, 60.0f)},
+                         vec3(0.0f, 40.0f, 90.0f)},
         cameraLookAt = cameraPosition[0];
 int cameraIndex = 0;
 float cameraRotationAngle = 0.0f,
@@ -154,7 +154,6 @@ vec3 ballScaling(0.25f, 0.25f, 0.25f),
         tennisScaling(48.0f, 4.14f, 0.5f),
         groundNormal(0.0f, 1.0f, 0.0f),
         racketNetScaling(1.33f, 1.66f, 0.16f);
-float ballRadius = ballScaling.x;
 const float GRAVITY = 9.807f, DAMPING = 1.0f;
 
 // Ball bounce parameters
@@ -175,228 +174,6 @@ int nextServe = 1, bounce = 0, lastBounceRacket = 0, p1Score = 0, p2Score = 0;
 vec3 lightPosition;
 mat4 lightProjectionMatrix;
 bool isSpotLightOn = false, isShadowOn = false;
-
-// Check if the ball touches the ground
-bool intersectsGround(vec3 planePoint, vec3 planeNormal) {
-    return dot(planeNormal, ballPosition - planePoint) < ballRadius;
-}
-
-bool intersectsRacket(const vec3 &racketPosition, const vec3 &racketNormal, float racketWidth, float racketHeight) {
-    vec3 ballToRacket = racketPosition - ballPosition;
-    float distance = dot(ballToRacket, racketNormal);
-
-    if (abs(distance) <= ballRadius) {
-        vec3 projectedPoint = ballPosition + distance * racketNormal;
-        vec3 closestPointOnRacket = clamp(projectedPoint, racketPosition - racketWidth / 2,
-                                          racketPosition + racketWidth / 2);
-
-        // Check if the projected point is within the width and height of the racket
-        bool withinWidthRange = (closestPointOnRacket.x >= racketPosition.x - racketWidth / 2 &&
-                                 closestPointOnRacket.x <= racketPosition.x + racketWidth / 2);
-        bool withinHeightRange = (closestPointOnRacket.y >= racketPosition.y - racketHeight / 2 &&
-                                  closestPointOnRacket.y <= racketPosition.y + racketHeight / 2);
-
-        if (withinWidthRange && withinHeightRange) {
-            float distanceToClosestPoint = length(projectedPoint - closestPointOnRacket);
-            if (distanceToClosestPoint <= ballRadius) {
-                return true; // Collision detected within the racket's width and height
-            }
-        }
-    }
-    return false; // No collision
-}
-
-// Check if the ball touches the net
-bool intersectsNet(const vec3 &netPosition, const vec3 &netNormal, float netWidth, float netHeight) {
-    vec3 ballToNet = netPosition - ballPosition;
-    float distance = dot(ballToNet, netNormal);
-
-    if (abs(distance) <= ballRadius) {
-        vec3 projectedPoint = ballPosition + distance * netNormal;
-        vec3 closestPointOnNet = projectedPoint; // Assuming the net is a plane, just use the projected point
-
-        // Check if the projected point is within the width and height of the net on either side
-        float halfWidth = netWidth / 2;
-        float halfHeight = netHeight / 2;
-
-        bool withinWidthRange = (closestPointOnNet.x >= netPosition.x - halfWidth &&
-                                 closestPointOnNet.x <= netPosition.x + halfWidth);
-        bool withinHeightRange = (closestPointOnNet.y >= netPosition.y - halfHeight &&
-                                  closestPointOnNet.y <= netPosition.y + halfHeight);
-
-        if (withinWidthRange && withinHeightRange) {
-            float distanceToClosestPoint = length(projectedPoint - closestPointOnNet);
-            if (distanceToClosestPoint <= ballRadius) {
-                return true; // Collision detected within the net's width and height
-            }
-        }
-    }
-    return false; // No collision
-}
-
-/**
- * Sets a uniform vec4 variable in the shader
- */
-void SetUniformMat4(GLuint shader_id, const char *uniform_name, mat4 uniform_value) {
-    glUseProgram(shader_id);
-    glUniformMatrix4fv(glGetUniformLocation(shader_id, uniform_name), 1, GL_FALSE, &uniform_value[0][0]);
-}
-
-/**
- * Sets a uniform vec4 variable in the shader
- */
-template<class T>
-void SetUniform1Value(GLuint shader_id, const char *uniform_name, T uniform_value) {
-    glUseProgram(shader_id);
-    glUniform1i(glGetUniformLocation(shader_id, uniform_name), uniform_value);
-    glUseProgram(0);
-}
-
-/**
- * Sets a uniform vec3 variable in the shader
- */
-void SetUniformVec3(GLuint shader_id, const char *uniform_name, vec3 uniform_value) {
-    glUseProgram(shader_id);
-    glUniform3fv(glGetUniformLocation(shader_id, uniform_name), 1, &uniform_value[0]);
-}
-
-GLuint setupModelVBO(string path, int &vertexCount) {
-    vector<vec3> vertices;
-    vector<vec3> normals;
-    vector<vec2> UVs;
-
-    //read the vertex data from the model's OBJ file
-    loadOBJ(path.c_str(), vertices, normals, UVs);
-
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO); //Becomes active VAO
-    // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
-
-    //Vertex VBO setup
-    GLuint vertices_VBO;
-    glGenBuffers(1, &vertices_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, vertices_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec3), &vertices.front(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) nullptr);
-    glEnableVertexAttribArray(0);
-
-    //UVs VBO setup
-    GLuint uvs_VBO;
-    glGenBuffers(1, &uvs_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, uvs_VBO);
-    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(vec2), &UVs.front(), GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid *) nullptr);
-    glEnableVertexAttribArray(1);
-
-    //Normals VBO setup
-    GLuint normals_VBO;
-    glGenBuffers(1, &normals_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, normals_VBO);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(vec3), &normals.front(), GL_STATIC_DRAW);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) nullptr);
-    glEnableVertexAttribArray(2);
-
-    glBindVertexArray(0);
-    // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs, as we are using multiple VAOs)
-    vertexCount = vertices.size();
-    return VAO;
-}
-
-GLuint setupModelEBO(string path, int &vertexCount) {
-    vector<int> vertexIndices;
-    //The contiguous sets of three indices of vertices, normals and UVs, used to make a triangle
-    vector<vec3> vertices;
-    vector<vec3> normals;
-    vector<vec2> UVs;
-
-    //read the vertices from the cube.obj file
-    //We won't be needing the normals or UVs for this program
-    loadOBJ2(path.c_str(), vertexIndices, vertices, normals, UVs);
-
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO); //Becomes active VAO
-    // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
-
-    //Vertex VBO setup
-    GLuint vertices_VBO;
-    glGenBuffers(1, &vertices_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, vertices_VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(vec3), &vertices.front(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) nullptr);
-    glEnableVertexAttribArray(0);
-
-    //UVs VBO setup
-    GLuint uvs_VBO;
-    glGenBuffers(1, &uvs_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, uvs_VBO);
-    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(vec2), &UVs.front(), GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (GLvoid *) nullptr);
-    glEnableVertexAttribArray(1);
-
-    //Normals VBO setup
-    GLuint normals_VBO;
-    glGenBuffers(1, &normals_VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, normals_VBO);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(vec3), &normals.front(), GL_STATIC_DRAW);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *) nullptr);
-    glEnableVertexAttribArray(2);
-
-    //EBO setup
-    GLuint EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, vertexIndices.size() * sizeof(int), &vertexIndices.front(), GL_STATIC_DRAW);
-
-    glBindVertexArray(0);
-    // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs), remember: do NOT unbind the EBO, keep it bound to this VAO
-    vertexCount = vertexIndices.size();
-    return VAO;
-}
-
-/**
- * Loads a texture from a file and returns the texture ID
- */
-GLuint loadTexture(const char *filename) {
-    // Step1 Create and bind textures
-    GLuint textureId = 0;
-    glGenTextures(1, &textureId);
-    assert(textureId != 0);
-
-
-    glBindTexture(GL_TEXTURE_2D, textureId);
-
-    // Step2 Set filter parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-    // Step3 Load Textures with dimension data
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(filename, &width, &height, &nrChannels, 0);
-    if (!data) {
-        std::cerr << "Error::Texture could not load texture file:" << filename << std::endl;
-        return 0;
-    }
-
-    // Step4 Upload the texture to the PU
-    GLenum format = 0;
-    if (nrChannels == 1)
-        format = GL_RED;
-    else if (nrChannels == 3)
-        format = GL_RGB;
-    else if (nrChannels == 4)
-        format = GL_RGBA;
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height,
-                 0, format, GL_UNSIGNED_BYTE, data);
-
-    // Step5 Free resources
-    stbi_image_free(data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    return textureId;
-}
 
 /**
  * Reset parameters to their initial values
@@ -666,9 +443,72 @@ void handleInputs() {
 }
 
 /**
+ * Reshape the window
+ */
+void reshape(GLFWwindow *handle, int width, int height) {
+    glViewport(0, 0, width, height);
+    projectionMatrix = perspective(70.0f,                                  // field of view in degrees
+                                   (float) width / (float) height,       // aspect ratio
+                                   0.01f, 1000.0f);                  // near and far (near > 0)
+    SetUniformMat4(colorShaderProgram, "projectionMatrix", projectionMatrix);
+}
+
+/**
  * Renders the court inside the world
  */
-void createTennisCourt(GLuint shaderProgram) {
+void drawTennisCourt(GLuint shaderProgram) {
+    // Score Board
+    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[1]);
+    translationMatrix = translate(mat4(1.0f), vec3(-28.0f, 6.0f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 8.0f, 20.0f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Inner background - Left
+    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[2]);
+    translationMatrix = translate(mat4(1.0f), vec3(-27.7f, 6.0f, 5.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.05f, 6.8f, 8.0f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // Inner background - Right
+    translationMatrix = translate(mat4(1.0f), vec3(-27.7f, 6.0f, -5.0f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // P1
+    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[3]);
+    translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 8.0f, 5.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.01f, 2.8f, 2.8f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // P2
+    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[4]);
+    translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 8.0f, -5.0f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // P1 - score
+    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[5 + (p1Score < 5 ? p1Score : 0)]);
+    translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 5.0f, 5.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(0.01f, 2.5f, 2.5f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
+    // P2 - score
+    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[5 + (p2Score < 5 ? p2Score : 0)]);
+    translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 5.0f, -5.0f));
+    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+
     // Tennis court grass
     glBindTexture(GL_TEXTURE_2D, tennisCourtGrassTextureID);
     translationMatrix = translate(mat4(1.0f), groundPoint);
@@ -789,58 +629,6 @@ void createTennisCourt(GLuint shaderProgram) {
     worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // Score Board
-    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[1]);
-    translationMatrix = translate(mat4(1.0f), vec3(-28.0f, 6.0f, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(0.5f, 8.0f, 20.0f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // Inner background - Left
-    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[2]);
-    translationMatrix = translate(mat4(1.0f), vec3(-27.7f, 6.0f, 5.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(0.05f, 6.8f, 8.0f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // Inner background - Right
-    translationMatrix = translate(mat4(1.0f), vec3(-27.7f, 6.0f, -5.0f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // P1
-    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[3]);
-    translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 8.0f, 5.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(0.01f, 2.8f, 2.8f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // P2
-    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[4]);
-    translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 8.0f, -5.0f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // P1 - score
-    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[5 + (p1Score < 5 ? p1Score : 0)]);
-    translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 5.0f, 5.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(0.01f, 2.5f, 2.5f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
-
-    // P2 - score
-    glBindTexture(GL_TEXTURE_2D, scoreBoardTextures[5 + (p2Score < 5 ? p2Score : 0)]);
-    translationMatrix = translate(mat4(1.0f), vec3(-27.62f, 5.0f, -5.0f));
-    worldMatrix = groundTennisHierarchicalMatrix * translationMatrix * scalingMatrix;
-    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
 }
 
 /**
@@ -848,7 +636,6 @@ void createTennisCourt(GLuint shaderProgram) {
  */
 void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float zPos, float yGround, float scaling) {
     // Draw textured geometry
-    glActiveTexture(GL_TEXTURE0);
     mat4 rotatingLeftMatrix = rotate(mat4(1.0f), radians(90.0f), vec3(0.0f, 1.0f, 0.0f));
     mat4 rotatingRightMatrix = rotate(mat4(1.0f), radians(-90.0f), vec3(0.0f, 1.0f, 0.0f));
 
@@ -983,25 +770,20 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         glDrawElements(GL_TRIANGLES, itemsVertices[5], GL_UNSIGNED_INT, nullptr);
     }
 
-    glBindVertexArray(0);
-    // End Frame
-}
-
-/**
- * Renders a frame
- */
-void drawFrame(GLuint shaderProgram) {
-    // Draw textured geometry
-    glActiveTexture(GL_TEXTURE0);
-    glBindVertexArray(cubeVAO);
     // Surrounding cube
+    glBindVertexArray(cubeVAO);
     glBindTexture(GL_TEXTURE_2D, blueBoxTextureID);
     translationMatrix = translate(mat4(1.0f), vec3(0.0f, 0.0f, 0.0f));
     scalingMatrix = scale(mat4(1.0f), vec3(200.0f, 200.0f, 200.0f));
     worldMatrix = translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
+}
 
+/**
+ * Renders the racket and the ball inside the world
+ */
+void drawRacketAndBall(GLuint shaderProgram) {
     // Sphere 1 (Tennis ball)
     glBindVertexArray(sphereVAO);
     glBindTexture(GL_TEXTURE_2D, ballTextureID);
@@ -1010,9 +792,9 @@ void drawFrame(GLuint shaderProgram) {
     worldMatrix = translationMatrix * scalingMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
     glDrawElements(GL_TRIANGLE_STRIP, sphereVerticesCount, GL_UNSIGNED_INT, nullptr);
-    glBindVertexArray(cubeVAO);
 
     // Create 2 players
+    glBindVertexArray(cubeVAO);
     for (int i = 0; i < 2; i++) {
         // Cube 1 (Arm bottom)
         glBindTexture(GL_TEXTURE_2D, skin1TextureID);
@@ -1200,9 +982,17 @@ void drawFrame(GLuint shaderProgram) {
             glDrawArrays(GL_TRIANGLES, 0, cubeVerticesCount);
         }
     }
-    createTennisCourt(shaderProgram);
-    drawWorld(colorShaderProgram, -25.0f, 25.0f, -54.0f, 54.0f, -0.5f, 2);
+}
 
+/**
+ * Renders a frame
+ */
+void drawFrame(GLuint shaderProgram) {
+    // Draw the items
+    glActiveTexture(GL_TEXTURE0);
+    drawRacketAndBall(shaderProgram);
+    drawWorld(shaderProgram, -25.0f, 25.0f, -54.0f, 54.0f, -0.5f, 2);
+    drawTennisCourt(shaderProgram);
     glBindVertexArray(0);
     // End Frame
 }
@@ -1230,10 +1020,12 @@ void updateBallPosition() {
     // Racket Position
     racket1Position = racketNetTransformation[0][3];
     racket2Position = racketNetTransformation[1][3];
-    vec3 racket1NormalWorld = vec3(transpose(inverse(racketNetTransformation[0])) * vec4(vec3(0.0f, 0.0f, 1.0f), 0.0f));
-    vec3 racket2NormalWorld = vec3(
-            transpose(inverse(racketNetTransformation[1])) * vec4(vec3(0.0f, 0.0f, -1.0f), 0.0f));
-    vec3 tennisNetPoint = vec3(transpose(inverse(racketNetTransformation[0])) * vec4(vec3(0.0f, 0.0f, 0.0f), 1.0f));
+    vec3 racket1NormalWorld = vec3(transpose(inverse(racketNetTransformation[0])) *
+                                   vec4(vec3(0.0f, 0.0f, 1.0f), 0.0f));
+    vec3 racket2NormalWorld = vec3(transpose(inverse(racketNetTransformation[1])) *
+                                   vec4(vec3(0.0f, 0.0f, -1.0f), 0.0f));
+    vec3 tennisNetPoint = vec3(transpose(inverse(racketNetTransformation[0])) *
+                               vec4(vec3(0.0f, 0.0f, 0.0f), 1.0f));
     racket1Normal = normalize(racket1NormalWorld);
     racket2Normal = normalize(racket2NormalWorld);
 
@@ -1241,13 +1033,14 @@ void updateBallPosition() {
     ballVelocity += vec3(0.0f, -GRAVITY, 0.0f) * dt;
 
     // Check ball bounce on the ground
-    if (intersectsGround(groundPoint, groundNormal)) {
+    if (intersectsGround(groundPoint, groundNormal, ballPosition, ballScaling.x)) {
         ballVelocity.y = abs(ballVelocity.y * DAMPING);
         bounce++;
     }
 
     // Check ball bounce on the racket 1
-    if (intersectsRacket(racket1Position, racket1Normal, racketNetScaling.x, racketNetScaling.y)) {
+    if (intersectsRacket(racket1Position, racket1Normal, racketNetScaling.x,
+                         racketNetScaling.y, ballPosition, ballScaling.x)) {
         // Reflect the ball's velocity off racket1
         ballVelocity = ballVelocity - 3.0f * dot(ballVelocity, racket1Normal) * racket1Normal;
         bounce = 0;
@@ -1255,7 +1048,8 @@ void updateBallPosition() {
     }
 
     // Check ball bounce on the racket 2
-    if (intersectsRacket(racket2Position, racket2Normal, racketNetScaling.x, racketNetScaling.y)) {
+    if (intersectsRacket(racket2Position, racket2Normal, racketNetScaling.x,
+                         racketNetScaling.y, ballPosition, ballScaling.x)) {
         // Reflect the ball's velocity off racket2
         ballVelocity = ballVelocity - 3.0f * dot(ballVelocity, racket2Normal) * racket2Normal;
         bounce = 0;
@@ -1263,7 +1057,8 @@ void updateBallPosition() {
     }
 
     // Check ball bounce on the net
-    if (intersectsNet(tennisNetPosition, tennisNetNormal, tennisScaling.x, tennisScaling.y)) {
+    if (intersectsNet(tennisNetPosition, tennisNetNormal, tennisScaling.x,
+                      tennisScaling.y, ballPosition, ballScaling.x)) {
         // Reflect the ball's velocity off the net
         ballVelocity = ballVelocity - 2.0f * dot(ballVelocity, tennisNetNormal) * tennisNetNormal;
     }
@@ -1282,11 +1077,12 @@ void checkScore() {
             if (lastBounceRacket == 1) {
                 p2Score = (p2Score + 1) % 5;
                 nextServe = 2;
+                resetBall(nextServe);
             } else if (lastBounceRacket == 2) {
                 p1Score = (p1Score + 1) % 5;
                 nextServe = 1;
+                resetBall(nextServe);
             }
-            resetBall(nextServe);
         }
     } else if (bounce == 1) { // Check if ball is on the same side of the last bounce & out of bounds on the other side
         if (lastBounceRacket == 1) {
@@ -1383,14 +1179,6 @@ void processUpdates() {
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
 }
 
-void reshape(GLFWwindow *handle, int width, int height) {
-    glViewport(0, 0, width, height);
-    projectionMatrix = perspective(70.0f,                                  // field of view in degrees
-                                   (float) width / (float) height,       // aspect ratio
-                                   0.01f, 1000.0f);                  // near and far (near > 0)
-    SetUniformMat4(colorShaderProgram, "projectionMatrix", projectionMatrix);
-}
-
 /**
  * Initialize GLEW, GLFW and OpenGL version, create window, set callback functions and set other settings
  */
@@ -1448,31 +1236,6 @@ void initialize() {
 
     // Set draw point size
     glPointSize(5.0f);
-}
-
-/**
- * Initialize the frame buffer for the shadow map
- */
-void initializeFrameBuffer() {
-    glGenFramebuffers(1, &depthMapFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-
-    GLuint depthTexture;
-    glGenTextures(1, &depthTexture);
-    glBindTexture(GL_TEXTURE_2D, depthTexture);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, DEPTH_MAP_TEXTURE_SIZE,
-                 DEPTH_MAP_TEXTURE_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
-
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
-    glDrawBuffer(GL_NONE);
 }
 
 /**
@@ -1574,7 +1337,7 @@ int main(int argc, char *argv[]) {
     SetUniformMat4(colorShaderProgram, "projectionMatrix", projectionMatrix);
 
     // Initialize Frame Buffer
-    initializeFrameBuffer();
+    initializeFrameBuffer(depthMapFBO, DEPTH_MAP_TEXTURE_SIZE);
 
     float lightAngleOuter = 30.0;
     float lightAngleInner = 20.0;
@@ -1595,11 +1358,18 @@ int main(int argc, char *argv[]) {
         vec3 lightFocus(0.01);      // the point in 3D space the light "looks" at
         // light parameters
         if (cameraIndex == 3) {
-            lightPosition = cameraPosition[cameraIndex];
-            lightProjectionMatrix = perspective(radians(60.0f),
-                                                (float) DEPTH_MAP_TEXTURE_SIZE / (float) DEPTH_MAP_TEXTURE_SIZE,
-                                                lightNearPlane,
-                                                lightFarPlane);
+            cameraRotationAngle = cameraRotationSpeed * dt * 0.5f;
+            cameraRadius = length(cameraPosition[3]);
+            cameraTheta -= radians(cameraRotationAngle);
+            cameraPhi = clamp(asin(cameraPosition[3].y / cameraRadius), -pi<float>() / 2.0f + 0.01f,
+                              pi<float>() / 2.0f - 0.01f);
+            cameraPosX = cameraRadius * cos(cameraPhi) * cos(cameraTheta);
+            cameraPosY = cameraRadius * sin(cameraPhi);
+            cameraPosZ = cameraRadius * cos(cameraPhi) * sin(cameraTheta);
+            cameraPosition[3] = vec3(cameraPosX, cameraPosY, cameraPosZ);
+            cameraLookAt = -cameraPosition[3];
+            lightPosition = cameraPosition[3];
+
             SetUniform1Value(colorShaderProgram, "isShadowOn", 0);
         } else {
             lightPosition = vec3(0.0f, 0.0f, 30.0f);
