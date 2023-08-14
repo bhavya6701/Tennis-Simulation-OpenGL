@@ -164,9 +164,9 @@ bool isSpotLightOn = false;
 bool isShadowOn = false;
 
 //VAO for world
-int itemsVertices[6];
-GLuint itemsVAO[6];
-GLuint worldTextures[10], scoreBoardTextures[10];
+int itemsVertices[7];
+GLuint itemsVAO[7];
+GLuint worldTextures[9], scoreBoardTextures[10];
 
 // Check if the ball touches the ground
 bool intersectsGround(vec3 planePoint, vec3 planeNormal) {
@@ -882,14 +882,22 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
         i = i + 13;
     }
 
-    //    chair on left in court
-    glBindVertexArray(itemsVAO[1]);
+    // Chair on left in court
+    glBindVertexArray(itemsVAO[6]);
     glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
-    translationMatrix = translate(mat4(1.0f), vec3(xPos + 2.0f, yGround, 0.0f));
-    scalingMatrix = scale(mat4(1.0f), vec3(scaling) + vec3(0.0f, 1.0f, 0.0f));
+    translationMatrix = translate(mat4(1.0f), vec3(xPos + 3.0f, yGround, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(scaling / 10.0f, scaling / 8.0f, scaling / 8.0f));
     worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix;
     SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
-    glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES_ADJACENCY_EXT, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
+
+    glBindVertexArray(itemsVAO[2]);
+    glBindTexture(GL_TEXTURE_2D, worldTextures[8]);
+    translationMatrix = translate(mat4(1.0f), vec3(xPos + 0.8f, yGround + 5.0f, 0.0f));
+    scalingMatrix = scale(mat4(1.0f), vec3(scaling / 10.0f));
+    worldMatrix = translationMatrix * scalingMatrix * rotatingRightMatrix * rotatingRightMatrix;
+    SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
+    glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, nullptr);
 
     for (int count = 0; count < 2; count++) {
         float pushback = 10 * count;
@@ -905,14 +913,14 @@ void drawWorld(GLuint shaderProgram, float xNeg, float xPos, float zNeg, float z
             glDrawElements(GL_TRIANGLES, itemsVertices[1], GL_UNSIGNED_INT, nullptr);
 
             glBindVertexArray(itemsVAO[2]);
-            glBindTexture(GL_TEXTURE_2D, worldTextures[2]);
-            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.5f, i - 2.2));
+            glBindTexture(GL_TEXTURE_2D, worldTextures[8]);
+            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.5f, i - 1.8f));
             scalingMatrix = scale(mat4(1.0f), vec3(scaling / 10.0f));
             worldMatrix = translationMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, nullptr);
 
-            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.7f, i + 2.3));
+            translationMatrix = translate(mat4(1.0f), vec3(x, yGround + 2.7f, i + 3.0f));
             worldMatrix = translationMatrix * scalingMatrix;
             SetUniformMat4(shaderProgram, "worldMatrix", worldMatrix);
             glDrawElements(GL_TRIANGLES, itemsVertices[2], GL_UNSIGNED_INT, nullptr);
@@ -1393,7 +1401,7 @@ void initialize() {
     }
 
     // Enable Backface culling for performance
-//    glEnable(GL_CULL_FACE);
+    //    glEnable(GL_CULL_FACE);
 
     // Enable Depth test for z-culling
     glEnable(GL_DEPTH_TEST);
@@ -1488,6 +1496,7 @@ void loadAllTextures() {
     worldTextures[5] = loadTexture("../assets/textures/tree.png");
     worldTextures[6] = loadTexture("../assets/textures/tree2.png");
     worldTextures[7] = loadTexture("../assets/textures/clayTexture.png");
+    worldTextures[8] = loadTexture("../assets/textures/figureSkin.png");
 }
 
 /**
@@ -1522,8 +1531,9 @@ int main(int argc, char *argv[]) {
             "../assets/models/standingMan.obj",
             "../assets/models/tree.obj",
             "../assets/models/palmTree.obj",
+            "../assets/models/refereeChair.obj"
     };
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         itemsVAO[i] = setupModelEBO(itemPath[i], itemsVertices[i]);
     }
 
