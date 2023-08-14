@@ -75,7 +75,7 @@ float cameraRotationSpeed = 50.0f;
 vec3 cameraPosition[] = {vec3(0.0f, 20.0f, 70.0f),
                          vec3(-5.0f, 2.25f, -20.0f),
                          vec3(-5.0f, 2.25f, 20.0f),
-                         vec3(0.0f, 40.0f, 90.0f)},
+                         vec3(0.0f, 70.0f, 90.0f)},
         cameraLookAt = cameraPosition[0];
 int cameraIndex = 0;
 float cameraRotationAngle = 0.0f,
@@ -174,6 +174,8 @@ int nextServe = 1, bounce = 0, lastBounceRacket = 0, p1Score = 0, p2Score = 0;
 vec3 lightPosition;
 mat4 lightProjectionMatrix;
 bool isSpotLightOn = false, isShadowOn = false;
+float lightAngleOuter = 30.0;
+float lightAngleInner = 20.0;
 
 /**
  * Reset parameters to their initial values
@@ -1339,9 +1341,6 @@ int main(int argc, char *argv[]) {
     // Initialize Frame Buffer
     initializeFrameBuffer(depthMapFBO, DEPTH_MAP_TEXTURE_SIZE);
 
-    float lightAngleOuter = 30.0;
-    float lightAngleInner = 20.0;
-
     // Set light parameters on color shader
     SetUniform1Value(colorShaderProgram, "lightCutoffInner", cos(radians(lightAngleInner)));
     SetUniform1Value(colorShaderProgram, "lightCutoffOuter", cos(radians(lightAngleOuter)));
@@ -1372,8 +1371,8 @@ int main(int argc, char *argv[]) {
 
             SetUniform1Value(colorShaderProgram, "isShadowOn", 0);
         } else {
-            lightPosition = vec3(0.0f, 0.0f, 30.0f);
-            lightProjectionMatrix = perspective(radians(10.0f),
+            lightPosition = vec3(0.0f, 1.0f, 0.0f);
+            lightProjectionMatrix = perspective(radians(30.0f),
                                                 (float) DEPTH_MAP_TEXTURE_SIZE / (float) DEPTH_MAP_TEXTURE_SIZE,
                                                 lightNearPlane,
                                                 lightFarPlane);
@@ -1404,28 +1403,17 @@ int main(int argc, char *argv[]) {
         SetUniformVec3(colorShaderProgram, "viewPosition", cameraPosition[cameraIndex]);
 
         // First pass
-        glUseProgram(depthShaderProgram);
         glViewport(0, 0, DEPTH_MAP_TEXTURE_SIZE, DEPTH_MAP_TEXTURE_SIZE);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         drawFrame(depthShaderProgram);
-        SetUniformMat4(depthShaderProgram, "lightSpaceMatrix", lightSpaceMatrix);
 
         // Second pass
-        glUseProgram(colorShaderProgram);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
         glViewport(0, 0, frameBufferWidth, frameBufferHeight);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Set View and Projection matrices before drawing the scene
-        SetUniformMat4(colorShaderProgram, "viewMatrix", viewMatrix);
-        SetUniformMat4(colorShaderProgram, "projectionMatrix", projectionMatrix);
-        SetUniformMat4(colorShaderProgram, "lightSpaceMatrix", lightSpaceMatrix);
-
         glBindTexture(GL_TEXTURE_2D, depthMapFBO);
-
-        // Draw scene
         drawFrame(colorShaderProgram);
 
         // Swap the back and front buffers
