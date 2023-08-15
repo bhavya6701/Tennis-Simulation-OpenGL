@@ -1,10 +1,31 @@
-﻿# COMP371: Computer Graphics - Project
+﻿# Tennis Game Simulation using OpenGL
 
-#### Name: Bhavya Ruparelia
+![Tennis Game](game.png)
 
-#### Student ID: 40164863
+## Team Members
 
-## Build Instructions
+- Bhavya Ruparelia (40164863)
+- Devansh Vaidya (40165987)
+- Jananee Aruboribaran (40129224)
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Features](#features)
+- [Usage](#usage)
+- [Controls](#controls)
+- [Credits](#credits)
+- [License](#license)
+
+## Introduction
+
+As a part of COMP 371 project, we aim to create an immersive simulation of a tennis game using the OpenGL graphics
+library. The simulation includes a detailed tennis court, a scoreboard, interactive rackets representing players, and a
+crowd. The simulation allows players to experience the excitement of a tennis match through realistic graphics and
+gameplay elements.
+
+## Installation
 
 ### Command Line
 
@@ -30,6 +51,13 @@ cmake --build <build_folder> --target install
 a CMakeLists.txt file.
 
 **NOTE:** The `<build_folder>` can be anything but is usually just named `build`.
+
+**NOTE:** The `-G` flag sets the generator of the project to use. On **Linux**
+and **macOS** this defaults to **Unix Makefiles**. On **Windows** the default
+is **Visual Studio**.
+
+**NOTE:** It's usually a good idea to delete the `<build_folder>` if you switch
+generators.
 
 ### CMake GUI
 
@@ -65,7 +93,9 @@ make install
 ## Running
 
 Once built and installed, all the relevant files will be in the **dist** folder
-at the top level of the source folder.
+at the top level of the source folder, along with the program assets, such as
+textures, shaders and geometry. The assets generally need to be in the same
+path as the program.
 
 ### Linux/macOS
 
@@ -79,61 +109,82 @@ In the terminal type:
 
 Click on the **main.exe** from the File Explorer.
 
-## Implementation Specifications
+## Features
 
-1. **Cubical Poles for Tennis Net**
-   Three cubical poles holds the tennis net in place.
-   Two poles are be placed at the two ends of the tennis net, and one pole is be placed in the middle.
-   Textures are applied to each pole and the top row of the tennis net with repeat texture parameter for better
-   visual appearance.
+- Realistic tennis court environment with detailed textures and dimensions.
+- Interactive tennis rackets that players can control using keyboard inputs.
+- Scoreboard to keep track of the game's progress and display the scores.
+- Immersive crowd and environment elements to enhance the user experience.
+- Borrowed 3D assets (crowd, trees, decorative items, etc.) integrated to create an immersive atmosphere.
 
-2. **Alphabets on Rackets**
-   Four alphabets from Quiz 1 are brought together and placed on top of two rackets.
-   The front face of each alphabet is made transparent using suitable alpha values to create a visually appealing
-   effect.
+## Usage
 
-3. **Centering the Models**
-   The two racket models and corresponding alphabets are centered on either side of the tennis net.
-   The rackets and alphabets are modeled as one entity to transform them together, creating a unified appearance.
+Once the application is running, you can interact with the virtual world using the following controls:
 
-4. **Textures**
-   Distinct textures are applied to each alphabet to make them visually distinctive.
-   The racket structure have a metallic texture, and the arm have a tattooed texture, enhancing the realism of
-   the scene.
+## Controls
 
-5. **Texture for Sky Cube**
-   A suitable texture is applied to the inside of the sky cube, improving the visual experience when looking inside
-   the cube.
+- Use `1` and `2` to select Player1 and Player2, respectively.
+- Use `W`, `A`, `S`, and `D` to move the model up, left, down, and right, respectively.
+- Use `Shift + 3` and `Shift + 4` to control lower and upper arm of the model, respectively.
+- To move the selected part of the model in:
+    - Negative x-axis use `Z`
+    - Positive x-axis use `X`
+    - Negative y-axis use `C`
+    - Positive y-axis use `V`
+    - Negative z-axis use `B`
+    - Positive z-axis use `N`
+- Use `Up`, `Down`, `Left`, and `Right` arrow keys to move the World camera.
+- Use `M` to change between World, Player1, and Player2 cameras.
+- Use `0` to turn on/off the orbit camera.
+- Use `R` to reset to the World camera.
+- Use `Right Click` and `Drag` to move in the x-axis focusing on the center of the court.
+- Use `Left Click` and `Drag` to move in the z-axis focusing on the center of the court.
+- Use `Home` button to reset the model and camera view to its initial position and orientation.
+- Use `L` to turn on/off the light.
+- Use `P` to turn on/off the shadows.
+- Use `Esc` button to exit the application.
 
-6. **Lighting with Spotlight and Phong Illumination**
-   A spotlight is added as the main light source, using the Phong illumination model for realistic lighting
-   effects.
-   The spotlight is placed 30 units out on the z-axis, facing the model.
-   The 'L' key allows users to toggle the spotlight on and off.
-   Ambient light is enabled when the main light source is off.
+## Credits
 
-7. **Multiple Cameras**
-   One camera is added onto each racket model's front to provide an unobscured view.
-   The 'M' key allows user to loop through the available cameras, including the default main camera and the two
-   camera views with the racket models.
-   The 'R' key from Quiz 1 reset back to the main camera among other functions.
+Good place to learn OpenGL |
+https://www.learnopengl.com
 
-8. **Circling Camera with Spotlight**
-   Another camera is added to circle around the center of the scene using arrow keys.
-   A spotlight is attached to this camera, moving with the camera and toggleable using a key.
-   The circling camera's Y and look-at point remains constant for a smooth circling effect.
+Official OpenGL 4 Reference Documentation |
+https://www.khronos.org/registry/OpenGL-Refpages/gl4/
 
-9. **Rendering Shadows**
-   Shadows are rendered using two-pass shadow algorithms.
-   Users can toggle the spotlight from the circling camera for shadow computation using a key.
+Official OpenGL Wiki |
+https://www.khronos.org/opengl/wiki/
 
-10. **OpenGL Version and Comments**
-    The application uses OpenGL 4.1 and onwards for compatibility and modern features.
+Easy to Navigate OpenGL Function Documentation |
+http://docs.gl/
 
-11. **Note:**
-    - 'Shift + 1' and 'Shift + 2' keys toggle the racket models.
-    - The 'L' key toggles the spotlight on and off.
-    - The 'M' key loops through the available cameras.
-    - The '0' key changes camera to circling camera.
-    - The 'P' key toggles the shadow.
-    - The 'R' key resets the camera to the main camera.
+GLM Documentation |
+https://glm.g-truc.net/0.9.9/index.html
+
+GLFW Documentation |
+https://www.glfw.org/
+
+Good place for advanced graphics theory |
+https://www.scratchapixel.com/
+
+FloatyMonkey | Computer Graphics - YouTube |
+https://www.youtube.com/playlist?list=PL2fqtyC9Wl02ycOM1oXzAcTByTMepnhj_
+
+Free3D | 3D Models for Free |
+https://free3d.com/
+
+GeeksforGeeks | Basic Transformations in OPENGL |
+https://www.geeksforgeeks.org/basic-transformations-opengl/
+
+Mahadevan, S | Unit Sphere Object |
+https://gist.github.com/svmhdvn/efc5779e79780e8b72fb3040423f512f
+
+TurboSquid. 3D Models for Professionals |
+https://www.turbosquid.com/
+
+Unsplash | Beautiful Free Images & Pictures |
+https://unsplash.com/
+
+## License
+
+This project is licensed under the MIT License. Feel free to modify and distribute it as per the terms of the license.
