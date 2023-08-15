@@ -2,6 +2,12 @@
 
 ![Tennis Game](game.png)
 
+## Team Members
+
+- Bhavya Ruparelia (40164863)
+- Devansh Vaidya (40165987)
+- Jananee Aruboribaran (40129224)
+
 ## Table of Contents
 
 - [Introduction](#introduction)
@@ -14,9 +20,9 @@
 
 ## Introduction
 
-This project aims to create an immersive simulation of a tennis game using the OpenGL graphics library. The simulation
-includes a detailed tennis court, a scoreboard, interactive rackets representing players, and a crowd. The simulation
-allows players to experience the excitement of a tennis match through realistic graphics and
+As a part of COMP 371 project, we aim to create an immersive simulation of a tennis game using the OpenGL graphics
+library. The simulation includes a detailed tennis court, a scoreboard, interactive rackets representing players, and a
+crowd. The simulation allows players to experience the excitement of a tennis match through realistic graphics and
 gameplay elements.
 
 ## Installation
@@ -117,7 +123,26 @@ Once the application is running, you can interact with the virtual world using t
 
 ## Controls
 
-
+- Use `1` and `2` to select Player1 and Player2, respectively.
+- Use `W`, `A`, `S`, and `D` to move the model up, left, down, and right, respectively.
+- Use `Shift + 3` and `Shift + 4` to control lower and upper arm of the model, respectively.
+- To move the selected part of the model in:
+    - Negative x-axis use `Z`
+    - Positive x-axis use `X`
+    - Negative y-axis use `C`
+    - Positive y-axis use `V`
+    - Negative z-axis use `B`
+    - Positive z-axis use `N`
+- Use `Up`, `Down`, `Left`, and `Right` arrow keys to move the World camera.
+- Use `M` to change between World, Player1, and Player2 cameras.
+- Use `0` to turn on/off the orbit camera.
+- Use `R` to reset to the World camera.
+- Use `Right Click` and `Drag` to move in the x-axis focusing on the center of the court.
+- Use `Left Click` and `Drag` to move in the z-axis focusing on the center of the court.
+- Use `Home` button to reset the model and camera view to its initial position and orientation.
+- Use `L` to turn on/off the light.
+- Use `P` to turn on/off the shadows.
+- Use `Esc` button to exit the application.
 
 ## Credits
 
@@ -162,3 +187,4 @@ https://unsplash.com/
 
 ## License
 
+This project is licensed under the MIT License. Feel free to modify and distribute it as per the terms of the license.
