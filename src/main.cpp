@@ -1057,11 +1057,21 @@ void checkScore() {
     if (bounce == 0) { // Check if ball is out of bounds
         if (ballPosition.x > 18.73f || ballPosition.x < -18.73f || ballPosition.z > 54.17f || ballPosition.z < -54.17f) {
             if (lastBounceRacket == 1) {
-                p2Score = (p2Score + 1) % 5;
+                if (p2Score == 4) {
+                    p1Score = 0;
+                    p2Score = 0;
+                } else {
+                    p2Score++;
+                }
                 nextServe = 2;
                 resetBall(nextServe);
             } else if (lastBounceRacket == 2) {
-                p1Score = (p1Score + 1) % 5;
+                if (p1Score == 4) {
+                    p1Score = 0;
+                    p2Score = 0;
+                } else {
+                    p1Score++;
+                }
                 nextServe = 1;
                 resetBall(nextServe);
             }
@@ -1069,21 +1079,41 @@ void checkScore() {
     } else if (bounce == 1) { // Check if ball is on the same side of the last bounce & out of bounds on the other side
         if (lastBounceRacket == 1) {
             if (ballPosition.z > 0.0f) {
-                p2Score = (p2Score + 1) % 5;
+                if (p2Score == 4) {
+                    p1Score = 0;
+                    p2Score = 0;
+                } else {
+                    p2Score++;
+                }
                 nextServe = 2;
                 resetBall(nextServe);
             } else if (ballPosition.z < 0.0f && (ballPosition.x > 18.73f || ballPosition.x < -18.73f)) {
-                p1Score = (p1Score + 1) % 5;
+                if (p1Score == 4) {
+                    p1Score = 0;
+                    p2Score = 0;
+                } else {
+                    p1Score++;
+                }
                 nextServe = 1;
                 resetBall(nextServe);
             }
         } else if (lastBounceRacket == 2) {
             if (ballPosition.z < 0.0f) {
-                p1Score = (p1Score + 1) % 5;
+                if (p1Score == 4) {
+                    p1Score = 0;
+                    p2Score = 0;
+                } else {
+                    p1Score++;
+                }
                 nextServe = 1;
                 resetBall(nextServe);
             } else if (ballPosition.z > 0.0f && (ballPosition.x > 18.73f || ballPosition.x < -18.73f)) {
-                p2Score = (p2Score + 1) % 5;
+                if (p2Score == 4) {
+                    p1Score = 0;
+                    p2Score = 0;
+                } else {
+                    p2Score++;
+                }
                 nextServe = 2;
                 resetBall(nextServe);
             }
@@ -1091,13 +1121,23 @@ void checkScore() {
     } else { // Check if ball has bounced multiple times on the other side of the net
         if (lastBounceRacket == 1) {
             if (ballPosition.z < 0) {
-                p1Score = (p1Score + 1) % 5;
+                if (p1Score == 4) {
+                    p1Score = 0;
+                    p2Score = 0;
+                } else {
+                    p1Score++;
+                }
                 nextServe = 1;
                 resetBall(nextServe);
             }
         } else if (lastBounceRacket == 2) {
             if (ballPosition.z > 0) {
-                p2Score = (p2Score + 1) % 5;
+                if (p2Score == 4) {
+                    p1Score = 0;
+                    p2Score = 0;
+                } else {
+                    p2Score++;
+                }
                 nextServe = 2;
                 resetBall(nextServe);
             }
@@ -1200,7 +1240,6 @@ void initialize() {
     glfwSetCursorPosCallback(window, cursorCallback);
     glfwSetFramebufferSizeCallback(window, reshape);
 
-    // Todo check if this is needed
     glfwGetFramebufferSize(window, &frameBufferWidth, &frameBufferHeight);
 
     // Clear the screen to a light blue color
