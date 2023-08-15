@@ -4,9 +4,9 @@
 
 ## Team Members
 
-- Bhavya Ruparelia (40164863)
-- Devansh Vaidya (40165987)
-- Jananee Aruboribaran (40129224)
+- Bhavya Ruparelia (40164863) | https://github.com/bhavya6701
+- Devansh Vaidya (40165987) | https://github.com/Devansh-Vaidya
+- Jananee Aruboribaran (40129224) | https://github.com/BunnyPrince
 
 ## Table of Contents
 

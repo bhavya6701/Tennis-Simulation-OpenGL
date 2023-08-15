@@ -1133,29 +1133,19 @@ void processUpdates() {
     yRotationMatrix[selectedModel] = rotate(mat4(1.0f), yRotationAngle[selectedModel], vec3(0.0f, 1.0f, 0.0f));
 
     // Update matrix with angle of rotation of the arm
-    armXRotationMatrix[0][0] = rotate(mat4(1.0f), armXRotationAngle[0][0], vec3(1.0f, 0.0f, 0.0f));
-    armXRotationMatrix[0][1] = rotate(mat4(1.0f), armXRotationAngle[0][1], vec3(1.0f, 0.0f, 0.0f));
-    armXRotationMatrix[0][2] = rotate(mat4(1.0f), armXRotationAngle[0][2], vec3(1.0f, 0.0f, 0.0f));
-    armYRotationMatrix[0][0] = rotate(mat4(1.0f), armYRotationAngle[0][0], vec3(0.0f, 1.0f, 0.0f));
-    armYRotationMatrix[0][1] = rotate(mat4(1.0f), armYRotationAngle[0][1], vec3(0.0f, 1.0f, 0.0f));
-    armYRotationMatrix[0][2] = rotate(mat4(1.0f), armYRotationAngle[0][2], vec3(0.0f, 1.0f, 0.0f));
-    armZRotationMatrix[0][0] = rotate(mat4(1.0f), armZRotationAngle[0][0], vec3(0.0f, 0.0f, 1.0f));
-    armZRotationMatrix[0][1] = rotate(mat4(1.0f), armZRotationAngle[0][1], vec3(0.0f, 0.0f, 1.0f));
-    armZRotationMatrix[0][2] = rotate(mat4(1.0f), armZRotationAngle[0][2], vec3(0.0f, 0.0f, 1.0f));
-    armRotationMatrix[0][0] = armXRotationMatrix[0][0] * armYRotationMatrix[0][0] * armZRotationMatrix[0][0];
-    armRotationMatrix[0][1] = armXRotationMatrix[0][1] * armYRotationMatrix[0][1] * armZRotationMatrix[0][1];
-
-    armXRotationMatrix[1][0] = rotate(mat4(1.0f), armXRotationAngle[1][0], vec3(1.0f, 0.0f, 0.0f));
-    armXRotationMatrix[1][1] = rotate(mat4(1.0f), armXRotationAngle[1][1], vec3(1.0f, 0.0f, 0.0f));
-    armXRotationMatrix[1][2] = rotate(mat4(1.0f), armXRotationAngle[1][2], vec3(1.0f, 0.0f, 0.0f));
-    armYRotationMatrix[1][0] = rotate(mat4(1.0f), armYRotationAngle[1][0], vec3(0.0f, 1.0f, 0.0f));
-    armYRotationMatrix[1][1] = rotate(mat4(1.0f), armYRotationAngle[1][1], vec3(0.0f, 1.0f, 0.0f));
-    armYRotationMatrix[1][2] = rotate(mat4(1.0f), armYRotationAngle[1][2], vec3(0.0f, 1.0f, 0.0f));
-    armZRotationMatrix[1][0] = rotate(mat4(1.0f), armZRotationAngle[1][0], vec3(0.0f, 0.0f, 1.0f));
-    armZRotationMatrix[1][1] = rotate(mat4(1.0f), armZRotationAngle[1][1], vec3(0.0f, 0.0f, 1.0f));
-    armZRotationMatrix[1][2] = rotate(mat4(1.0f), armZRotationAngle[1][2], vec3(0.0f, 0.0f, 1.0f));
-    armRotationMatrix[1][0] = armXRotationMatrix[1][0] * armYRotationMatrix[1][0] * armZRotationMatrix[1][0];
-    armRotationMatrix[1][1] = armXRotationMatrix[1][1] * armYRotationMatrix[1][1] * armZRotationMatrix[1][1];
+    for(int i = 0; i < 2; i++) {
+        armXRotationMatrix[i][0] = rotate(mat4(1.0f), armXRotationAngle[i][0], vec3(1.0f, 0.0f, 0.0f));
+        armXRotationMatrix[i][1] = rotate(mat4(1.0f), armXRotationAngle[i][1], vec3(1.0f, 0.0f, 0.0f));
+        armXRotationMatrix[i][2] = rotate(mat4(1.0f), armXRotationAngle[i][2], vec3(1.0f, 0.0f, 0.0f));
+        armYRotationMatrix[i][0] = rotate(mat4(1.0f), armYRotationAngle[i][0], vec3(0.0f, 1.0f, 0.0f));
+        armYRotationMatrix[i][1] = rotate(mat4(1.0f), armYRotationAngle[i][1], vec3(0.0f, 1.0f, 0.0f));
+        armYRotationMatrix[i][2] = rotate(mat4(1.0f), armYRotationAngle[i][2], vec3(0.0f, 1.0f, 0.0f));
+        armZRotationMatrix[i][0] = rotate(mat4(1.0f), armZRotationAngle[i][0], vec3(0.0f, 0.0f, 1.0f));
+        armZRotationMatrix[i][1] = rotate(mat4(1.0f), armZRotationAngle[i][1], vec3(0.0f, 0.0f, 1.0f));
+        armZRotationMatrix[i][2] = rotate(mat4(1.0f), armZRotationAngle[i][2], vec3(0.0f, 0.0f, 1.0f));
+        armRotationMatrix[i][0] = armXRotationMatrix[i][0] * armYRotationMatrix[i][0] * armZRotationMatrix[i][0];
+        armRotationMatrix[i][1] = armXRotationMatrix[i][1] * armYRotationMatrix[i][1] * armZRotationMatrix[i][1];
+    }
 
     // Update Mouse Position
     glfwGetCursorPos(window, &lastMousePosX, &lastMousePosY);
