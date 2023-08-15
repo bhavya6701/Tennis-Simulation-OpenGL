@@ -64,7 +64,7 @@ mat4 worldMatrix, viewMatrix, projectionMatrix, rotationMatrix, translationMatri
         modelHierarchicalMatrix, groundTennisHierarchicalMatrix;
 
 // Tilting parameters for camera
-float dt = 0.0f, cameraVerticalAngle = 0.0f;
+float dt = 0.0f;
 
 // Camera constants
 vec3 cameraUp(0.0f, 1.0f, 0.0f),
@@ -85,7 +85,7 @@ float cameraRotationAngle = 0.0f,
         cameraPosX, cameraPosY, cameraPosZ;
 
 // Mouse parameters
-bool isLeftMBClicked = false, isRightMBClicked = false, isMiddleMBClicked = false;
+bool isLeftMBClicked = false, isRightMBClicked = false;
 double lastMousePosX = 0.0f, lastMousePosY = 0.0f;
 
 float lastBtnClick = 0.0f;
@@ -212,12 +212,6 @@ void mouseBtnCallback(GLFWwindow *handle, int button, int action, int mods) {
     } else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
         isRightMBClicked = false;
     }
-
-    if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS) {
-        isMiddleMBClicked = true;
-    } else if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE) {
-        isMiddleMBClicked = false;
-    }
 }
 
 /**
@@ -243,20 +237,6 @@ void cursorCallback(GLFWwindow *handle, double xPos, double yPos) {
         } else {
             cameraPosition[0] += vec3(0.5f, 0.0f, 0.0f);
         }
-    }
-
-    // Tilt camera vertically
-    if (isMiddleMBClicked) {
-        const float cameraAngularSpeed = 60.0f;
-        cameraVerticalAngle -= deltaY * cameraAngularSpeed * dt;
-        cameraVerticalAngle = std::max(-85.0f, std::min(85.0f, cameraVerticalAngle));
-
-        float theta = radians(90.0f);
-        float phi = radians(cameraVerticalAngle);
-
-        cameraLookAt = vec3(cosf(phi) * cosf(theta), sinf(phi), -cosf(phi) * sinf(theta));
-        cameraSideVector = normalize(cross(cameraLookAt, vec3(0.0f, 1.0f, 0.0f)));
-        cameraPosition[0] += cameraSideVector * dt;
     }
 }
 
@@ -1075,7 +1055,7 @@ void updateBallPosition() {
  */
 void checkScore() {
     if (bounce == 0) { // Check if ball is out of bounds
-        if (ballPosition.x > 25.0f || ballPosition.x < -25.0f || ballPosition.z > 54.17f || ballPosition.z < -54.17f) {
+        if (ballPosition.x > 18.73f || ballPosition.x < -18.73f || ballPosition.z > 54.17f || ballPosition.z < -54.17f) {
             if (lastBounceRacket == 1) {
                 p2Score = (p2Score + 1) % 5;
                 nextServe = 2;
@@ -1092,7 +1072,7 @@ void checkScore() {
                 p2Score = (p2Score + 1) % 5;
                 nextServe = 2;
                 resetBall(nextServe);
-            } else if (ballPosition.z < 0.0f && (ballPosition.x > 25.0f || ballPosition.x < -25.0f)) {
+            } else if (ballPosition.z < 0.0f && (ballPosition.x > 18.73f || ballPosition.x < -18.73f)) {
                 p1Score = (p1Score + 1) % 5;
                 nextServe = 1;
                 resetBall(nextServe);
@@ -1102,7 +1082,7 @@ void checkScore() {
                 p1Score = (p1Score + 1) % 5;
                 nextServe = 1;
                 resetBall(nextServe);
-            } else if (ballPosition.z > 0.0f && (ballPosition.x > 25.0f || ballPosition.x < -25.0f)) {
+            } else if (ballPosition.z > 0.0f && (ballPosition.x > 18.73f || ballPosition.x < -18.73f)) {
                 p2Score = (p2Score + 1) % 5;
                 nextServe = 2;
                 resetBall(nextServe);
@@ -1357,7 +1337,7 @@ int main(int argc, char *argv[]) {
         vec3 lightFocus(0.0f);      // the point in 3D space the light "looks" at
         // light parameters
         if (cameraIndex == 3) {
-            cameraRotationAngle = cameraRotationSpeed * dt * 0.5f;
+            cameraRotationAngle = cameraRotationSpeed * dt * 0.35f;
             cameraRadius = length(cameraPosition[3]);
             cameraTheta -= radians(cameraRotationAngle);
             cameraPhi = clamp(asin(cameraPosition[3].y / cameraRadius), -pi<float>() / 2.0f + 0.01f,
@@ -1368,15 +1348,14 @@ int main(int argc, char *argv[]) {
             cameraPosition[3] = vec3(cameraPosX, cameraPosY, cameraPosZ);
             cameraLookAt = -cameraPosition[3];
             lightPosition = cameraPosition[3];
-
             SetUniform1Value(colorShaderProgram, "isShadowOn", 0);
         } else {
-            lightPosition = vec3(0.0f, 50.0f, 0.0f);
-            lightProjectionMatrix = perspective(radians(30.0f),
-                                                (float) DEPTH_MAP_TEXTURE_SIZE / (float) DEPTH_MAP_TEXTURE_SIZE,
-                                                lightNearPlane,
-                                                lightFarPlane);
+            lightPosition = vec3(0.0f, 75.0f, 0.0f);
         }
+        lightProjectionMatrix = perspective(radians(30.0f),
+                                            (float) DEPTH_MAP_TEXTURE_SIZE / (float) DEPTH_MAP_TEXTURE_SIZE,
+                                            lightNearPlane,
+                                            lightFarPlane);
         vec3 lightDirection = normalize(lightFocus - lightPosition);
         mat4 lightViewMatrix = lookAt(lightPosition, lightFocus, vec3(0.0f, 1.0f, 0.0f));
         mat4 lightSpaceMatrix = lightProjectionMatrix * lightViewMatrix;
